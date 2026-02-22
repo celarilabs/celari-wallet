@@ -1,0 +1,42 @@
+{
+  "name": "@celari/sdk",
+  "version": "0.3.0",
+  "description": "Celari Wallet SDK — Connect dApps to Celari Wallet on Aztec Network",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "peerDependencies": {
+    "@aztec/aztec.js": ">=3.0.0",
+    "@aztec/wallet-sdk": ">=3.0.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/celari-wallet/celari-wallet"
+  },
+  "keywords": [
+    "aztec",
+    "wallet",
+    "privacy",
+    "passkey",
+    "zk",
+    "zero-knowledge"
+  ]
+}

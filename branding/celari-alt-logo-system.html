@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celari — Alt Logo System / Geometric Art Deco</title>
+<link href="https://fonts.googleapis.com/css2?family=Poiret+One&family=Tenor+Sans&family=IBM+Plex+Mono:wght@300;400;500&family=Outfit:wght@200;300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-obsidian: #0D0A0A;
+    --bg-card: #151111;
+    --bg-elevated: #1C1616;
+    --burgundy: #8B2D3A;
+    --burgundy-deep: #5C1D28;
+    --burgundy-light: #B84455;
+    --copper: #C87941;
+    --copper-light: #E09A62;
+    --copper-muted: #A06835;
+    --bronze: #9A7B5B;
+    --text-warm: #E8D8CC;
+    --text-muted: #8A7A70;
+    --text-dim: #5A4E48;
+    --border-dark: #2A2222;
+    --border-warm: #3A2E2E;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-obsidian);
+    color: var(--text-warm);
+    font-family: 'Outfit', sans-serif;
+    font-weight: 300;
+    min-height: 100vh;
+  }
+
+  /* Subtle grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  ::selection { background: var(--burgundy); color: var(--text-warm); }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px;
+  }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 80px;
+    position: relative;
+  }
+
+  .page-header::before,
+  .page-header::after {
+    content: '';
+    display: block;
+    margin: 0 auto;
+  }
+
+  .page-header .deco-line {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .deco-line span {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--border-warm), transparent);
+  }
+
+  .deco-line .diamond {
+    width: 6px;
+    height: 6px;
+    background: var(--copper);
+    transform: rotate(45deg);
+    flex-shrink: 0;
+  }
+
+  .page-title {
+    font-family: 'Poiret One', cursive;
+    font-size: 15px;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+  }
+
+  .page-subtitle {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+  }
+
+  /* Sections */
+  .section { margin-bottom: 80px; }
+
+  .section-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 5px;
+    color: var(--copper-muted);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-dark);
+  }
+
+  /* Logo Cards */
+  .logo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+
+  .logo-card {
+    border: 1px solid var(--border-dark);
+    padding: 60px 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    min-height: 280px;
+  }
+
+  .logo-card:hover { border-color: var(--border-warm); }
+
+  .logo-card.dark { background: var(--bg-card); }
+
+  .logo-card.warm-dark {
+    background: linear-gradient(135deg, #1A1214, #14100E);
+  }
+
+  .logo-card.burgundy-bg {
+    background: linear-gradient(135deg, var(--burgundy-deep), #3D1520);
+  }
+
+  .logo-card.light {
+    background: #F2EBE4;
+  }
+
+  .logo-card.full-width {
+    grid-column: 1 / -1;
+    min-height: 340px;
+  }
+
+  /* Art Deco corner decorations */
+  .logo-card::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 24px;
+    height: 24px;
+    border-top: 1px solid var(--border-warm);
+    border-left: 1px solid var(--border-warm);
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+  }
+
+  .logo-card::after {
+    content: '';
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 24px;
+    height: 24px;
+    border-bottom: 1px solid var(--border-warm);
+    border-right: 1px solid var(--border-warm);
+    opacity: 0.4;
+    transition: opacity 0.3s ease;
+  }
+
+  .logo-card:hover::before,
+  .logo-card:hover::after { opacity: 0.8; }
+
+  .logo-card.light::before { border-color: #C8B8A8; }
+  .logo-card.light::after { border-color: #C8B8A8; }
+
+  .card-tag {
+    position: absolute;
+    top: 16px;
+    left: 44px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .logo-card.light .card-tag { color: #A09080; }
+  .logo-card.burgundy-bg .card-tag { color: rgba(232,216,204,0.4); }
+
+  /* Brand lockup */
+  .brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 36px;
+  }
+
+  .brand-name {
+    font-family: 'Poiret One', cursive;
+    letter-spacing: 16px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .brand-name.large { font-size: 54px; }
+  .brand-name.medium { font-size: 40px; }
+
+  .brand-tagline {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+    opacity: 0.5;
+  }
+
+  .brand-separator {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+  }
+
+  .brand-separator .line {
+    width: 50px;
+    height: 1px;
+  }
+
+  .brand-separator .dot {
+    width: 4px;
+    height: 4px;
+    transform: rotate(45deg);
+  }
+
+  /* Icon row */
+  .icon-row {
+    display: flex;
+    align-items: center;
+    gap: 48px;
+    justify-content: center;
+  }
+
+  .icon-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .icon-size-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  /* Color Palette */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+
+  .swatch {
+    aspect-ratio: 1;
+    border: 1px solid var(--border-dark);
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 12px;
+    position: relative;
+    transition: transform 0.3s ease;
+  }
+
+  .swatch:hover { transform: scale(1.05); }
+
+  .swatch-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .swatch-hex {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    opacity: 0.7;
+  }
+
+  /* Typography showcase */
+  .type-showcase {
+    background: var(--bg-card);
+    border: 1px solid var(--border-dark);
+    padding: 48px;
+    position: relative;
+  }
+
+  .type-showcase::before {
+    content: '';
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    width: 20px;
+    height: 20px;
+    border-top: 1px solid var(--border-warm);
+    border-left: 1px solid var(--border-warm);
+    opacity: 0.3;
+  }
+
+  .type-row {
+    display: flex;
+    align-items: baseline;
+    gap: 32px;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--border-dark);
+  }
+
+  .type-row:last-child { border-bottom: none; }
+
+  .type-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    width: 120px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  /* Geometric pattern decoration */
+  .geo-pattern {
+    display: flex;
+    justify-content: center;
+    gap: 3px;
+    margin: 40px 0;
+    opacity: 0.15;
+  }
+
+  .geo-pattern .bar {
+    width: 2px;
+    background: var(--copper);
+  }
+
+  @media (max-width: 768px) {
+    .logo-grid { grid-template-columns: 1fr; }
+    .palette-grid { grid-template-columns: repeat(3, 1fr); }
+    .brand-name.large { font-size: 36px; letter-spacing: 10px; }
+    .brand-lockup { gap: 24px; }
+    .icon-row { gap: 24px; flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <div class="deco-line">
+      <span></span>
+      <div class="diamond"></div>
+      <span></span>
+    </div>
+    <h1 class="page-title">Celari — Alt Brand</h1>
+    <p class="page-subtitle">Geometric · Art Deco · Aztec</p>
+  </div>
+
+  <!-- ========== PRIMARY LOCKUP ========== -->
+  <div class="section">
+    <div class="section-label">01 — Primary Lockup</div>
+    <div class="logo-grid">
+      <div class="logo-card warm-dark full-width">
+        <span class="card-tag">Dark / Primary</span>
+        <div class="brand-lockup">
+          <div>
+            <!-- GEOMETRIC LOGOMARK: Stepped pyramid / temple with keyhole -->
+            <svg width="100" height="110" viewBox="0 0 100 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Outer stepped frame -->
+              <path d="M50 0 L100 30 L100 80 L50 110 L0 80 L0 30 Z" stroke="#C87941" stroke-width="1" fill="none" opacity="0.3"/>
+              <!-- Inner stepped frame -->
+              <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" stroke="#2A2222" stroke-width="0.5" fill="var(--bg-elevated)"/>
+
+              <!-- Stepped pyramid layers (Aztec temple) -->
+              <rect x="25" y="65" width="50" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.5"/>
+              <rect x="30" y="56" width="40" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.6"/>
+              <rect x="35" y="47" width="30" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.7"/>
+
+              <!-- Central geometric keyhole -->
+              <circle cx="50" cy="36" r="10" stroke="#C87941" stroke-width="1.2" fill="none"/>
+              <circle cx="50" cy="36" r="3.5" fill="#C87941"/>
+              <!-- Keyhole body - geometric/angular -->
+              <path d="M47 42 L45 62 L50 66 L55 62 L53 42" fill="#C87941" opacity="0.8"/>
+
+              <!-- Art Deco sunburst lines from top -->
+              <line x1="50" y1="8" x2="50" y2="20" stroke="#8B2D3A" stroke-width="0.5" opacity="0.4"/>
+              <line x1="35" y1="14" x2="42" y2="24" stroke="#8B2D3A" stroke-width="0.5" opacity="0.3"/>
+              <line x1="65" y1="14" x2="58" y2="24" stroke="#8B2D3A" stroke-width="0.5" opacity="0.3"/>
+
+              <!-- Corner diamonds -->
+              <rect x="48" y="3" width="4" height="4" fill="#8B2D3A" transform="rotate(45 50 5)" opacity="0.5"/>
+              <rect x="3" y="53" width="3" height="3" fill="#C87941" transform="rotate(45 4.5 54.5)" opacity="0.25"/>
+              <rect x="94" y="53" width="3" height="3" fill="#C87941" transform="rotate(45 95.5 54.5)" opacity="0.25"/>
+            </svg>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            <div class="brand-name large" style="color:#E8D8CC;">CELARI</div>
+            <div class="brand-separator">
+              <div class="line" style="background:var(--border-warm);"></div>
+              <div class="dot" style="background:var(--copper);"></div>
+              <div class="line" style="background:var(--border-warm);"></div>
+            </div>
+            <div class="brand-tagline" style="color:var(--text-dim);">Privacy-First Wallet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== VARIATIONS ========== -->
+  <div class="section">
+    <div class="section-label">02 — Variations</div>
+    <div class="logo-grid">
+
+      <!-- Dark wordmark -->
+      <div class="logo-card dark">
+        <span class="card-tag">Wordmark / Dark</span>
+        <div style="text-align:center;">
+          <div class="brand-name medium" style="color:#E8D8CC;">CELARI</div>
+          <div class="brand-separator" style="justify-content:center;">
+            <div class="line" style="background:var(--border-warm);"></div>
+            <div class="dot" style="background:var(--copper);"></div>
+            <div class="line" style="background:var(--border-warm);"></div>
+          </div>
+          <div class="brand-tagline" style="color:var(--text-dim);">Privacy-First Wallet</div>
+        </div>
+      </div>
+
+      <!-- Light wordmark -->
+      <div class="logo-card light">
+        <span class="card-tag">Wordmark / Light</span>
+        <div style="text-align:center;">
+          <div class="brand-name medium" style="color:#1A1210;">CELARI</div>
+          <div class="brand-separator" style="justify-content:center;">
+            <div class="line" style="background:#C8B8A8;"></div>
+            <div class="dot" style="background:var(--copper-muted);"></div>
+            <div class="line" style="background:#C8B8A8;"></div>
+          </div>
+          <div class="brand-tagline" style="color:#8A7A68;">Privacy-First Wallet</div>
+        </div>
+      </div>
+
+      <!-- Burgundy bg mark -->
+      <div class="logo-card burgundy-bg">
+        <span class="card-tag">Mark / Burgundy</span>
+        <svg width="100" height="110" viewBox="0 0 100 110" fill="none">
+          <path d="M50 0 L100 30 L100 80 L50 110 L0 80 L0 30 Z" stroke="rgba(232,216,204,0.15)" stroke-width="1" fill="none"/>
+          <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" stroke="rgba(232,216,204,0.1)" stroke-width="0.5" fill="rgba(92,29,40,0.5)"/>
+          <rect x="25" y="65" width="50" height="6" fill="none" stroke="rgba(232,216,204,0.2)" stroke-width="0.8"/>
+          <rect x="30" y="56" width="40" height="6" fill="none" stroke="rgba(232,216,204,0.25)" stroke-width="0.8"/>
+          <rect x="35" y="47" width="30" height="6" fill="none" stroke="rgba(232,216,204,0.3)" stroke-width="0.8"/>
+          <circle cx="50" cy="36" r="10" stroke="#E8D8CC" stroke-width="1.2" fill="none" opacity="0.7"/>
+          <circle cx="50" cy="36" r="3.5" fill="#E8D8CC" opacity="0.8"/>
+          <path d="M47 42 L45 62 L50 66 L55 62 L53 42" fill="#E8D8CC" opacity="0.6"/>
+        </svg>
+      </div>
+
+      <!-- Light mark -->
+      <div class="logo-card light">
+        <span class="card-tag">Mark / Light</span>
+        <svg width="100" height="110" viewBox="0 0 100 110" fill="none">
+          <path d="M50 0 L100 30 L100 80 L50 110 L0 80 L0 30 Z" stroke="#C8B8A8" stroke-width="1" fill="none" opacity="0.4"/>
+          <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" stroke="#D8CCC0" stroke-width="0.5" fill="#EAE4DC"/>
+          <rect x="25" y="65" width="50" height="6" fill="none" stroke="#A06835" stroke-width="0.8" opacity="0.4"/>
+          <rect x="30" y="56" width="40" height="6" fill="none" stroke="#A06835" stroke-width="0.8" opacity="0.5"/>
+          <rect x="35" y="47" width="30" height="6" fill="none" stroke="#A06835" stroke-width="0.8" opacity="0.6"/>
+          <circle cx="50" cy="36" r="10" stroke="#8B2D3A" stroke-width="1.2" fill="none"/>
+          <circle cx="50" cy="36" r="3.5" fill="#8B2D3A"/>
+          <path d="M47 42 L45 62 L50 66 L55 62 L53 42" fill="#8B2D3A" opacity="0.7"/>
+          <line x1="50" y1="8" x2="50" y2="20" stroke="#8B2D3A" stroke-width="0.5" opacity="0.3"/>
+          <rect x="48" y="3" width="4" height="4" fill="#8B2D3A" transform="rotate(45 50 5)" opacity="0.35"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== APP ICONS ========== -->
+  <div class="section">
+    <div class="section-label">03 — App Icon Sizes</div>
+    <div class="logo-card warm-dark full-width" style="grid-column:unset;">
+      <span class="card-tag">Responsive Icon</span>
+      <div class="icon-row">
+        <!-- 128 -->
+        <div class="icon-container">
+          <div style="width:128px;height:128px;background:linear-gradient(135deg,#1A1214,#0D0A0A);border-radius:28px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-dark);position:relative;overflow:hidden;">
+            <!-- Inner deco border -->
+            <div style="position:absolute;inset:6px;border:0.5px solid rgba(200,121,65,0.12);border-radius:22px;"></div>
+            <svg width="64" height="70" viewBox="0 0 100 110" fill="none">
+              <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" fill="#1C1616" stroke="#2A2222" stroke-width="0.8"/>
+              <rect x="30" y="56" width="40" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.5"/>
+              <rect x="35" y="47" width="30" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.6"/>
+              <circle cx="50" cy="36" r="10" stroke="#C87941" stroke-width="1.4" fill="none"/>
+              <circle cx="50" cy="36" r="3.5" fill="#C87941"/>
+              <path d="M47 42 L45 62 L50 66 L55 62 L53 42" fill="#C87941" opacity="0.8"/>
+            </svg>
+          </div>
+          <span class="icon-size-label">128px</span>
+        </div>
+        <!-- 64 -->
+        <div class="icon-container">
+          <div style="width:64px;height:64px;background:linear-gradient(135deg,#1A1214,#0D0A0A);border-radius:14px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-dark);">
+            <svg width="32" height="36" viewBox="0 0 100 110" fill="none">
+              <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" fill="#1C1616" stroke="#2A2222" stroke-width="1.5"/>
+              <circle cx="50" cy="36" r="11" stroke="#C87941" stroke-width="2.5" fill="none"/>
+              <circle cx="50" cy="36" r="4" fill="#C87941"/>
+              <path d="M46 42 L44 64 L50 68 L56 64 L54 42" fill="#C87941" opacity="0.8"/>
+            </svg>
+          </div>
+          <span class="icon-size-label">64px</span>
+        </div>
+        <!-- 32 -->
+        <div class="icon-container">
+          <div style="width:32px;height:32px;background:linear-gradient(135deg,#1A1214,#0D0A0A);border-radius:8px;display:flex;align-items:center;justify-content:center;border:1px solid var(--border-dark);">
+            <svg width="16" height="18" viewBox="0 0 100 110" fill="none">
+              <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" fill="#1C1616" stroke="#2A2222" stroke-width="4"/>
+              <circle cx="50" cy="38" r="14" stroke="#C87941" stroke-width="5" fill="none"/>
+              <circle cx="50" cy="38" r="6" fill="#C87941"/>
+              <path d="M44 46 L42 72 L50 78 L58 72 L56 46" fill="#C87941"/>
+            </svg>
+          </div>
+          <span class="icon-size-label">32px</span>
+        </div>
+
+        <div style="width:1px;height:60px;background:var(--border-dark);margin:0 12px;"></div>
+
+        <!-- Burgundy icon -->
+        <div class="icon-container">
+          <div style="width:128px;height:128px;background:linear-gradient(135deg,var(--burgundy-deep),#3D1520);border-radius:28px;display:flex;align-items:center;justify-content:center;border:1px solid rgba(139,45,58,0.3);position:relative;overflow:hidden;">
+            <div style="position:absolute;inset:6px;border:0.5px solid rgba(232,216,204,0.06);border-radius:22px;"></div>
+            <svg width="64" height="70" viewBox="0 0 100 110" fill="none">
+              <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" fill="rgba(92,29,40,0.5)" stroke="rgba(232,216,204,0.1)" stroke-width="0.8"/>
+              <rect x="30" y="56" width="40" height="6" fill="none" stroke="rgba(232,216,204,0.15)" stroke-width="0.8"/>
+              <rect x="35" y="47" width="30" height="6" fill="none" stroke="rgba(232,216,204,0.2)" stroke-width="0.8"/>
+              <circle cx="50" cy="36" r="10" stroke="#E8D8CC" stroke-width="1.2" fill="none" opacity="0.6"/>
+              <circle cx="50" cy="36" r="3.5" fill="#E8D8CC" opacity="0.7"/>
+              <path d="M47 42 L45 62 L50 66 L55 62 L53 42" fill="#E8D8CC" opacity="0.5"/>
+            </svg>
+          </div>
+          <span class="icon-size-label">Burgundy</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== COLOR PALETTE ========== -->
+  <div class="section">
+    <div class="section-label">04 — Color Palette</div>
+    <div class="palette-grid">
+      <div class="swatch" style="background:#0D0A0A;">
+        <span class="swatch-name" style="color:#5A4E48;">Obsidian</span>
+        <span class="swatch-hex" style="color:#5A4E48;">#0D0A0A</span>
+      </div>
+      <div class="swatch" style="background:#1C1616;">
+        <span class="swatch-name" style="color:#5A4E48;">Charcoal</span>
+        <span class="swatch-hex" style="color:#5A4E48;">#1C1616</span>
+      </div>
+      <div class="swatch" style="background:#8B2D3A;">
+        <span class="swatch-name" style="color:#E8D8CC;">Burgundy</span>
+        <span class="swatch-hex" style="color:#E8D8CC;">#8B2D3A</span>
+      </div>
+      <div class="swatch" style="background:#C87941;">
+        <span class="swatch-name" style="color:#0D0A0A;">Copper</span>
+        <span class="swatch-hex" style="color:#0D0A0A;">#C87941</span>
+      </div>
+      <div class="swatch" style="background:#E8D8CC;">
+        <span class="swatch-name" style="color:#1A1210;">Parchment</span>
+        <span class="swatch-hex" style="color:#1A1210;">#E8D8CC</span>
+      </div>
+      <div class="swatch" style="background:#2A2222;">
+        <span class="swatch-name" style="color:#5A4E48;">Ember</span>
+        <span class="swatch-hex" style="color:#5A4E48;">#2A2222</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TYPOGRAPHY ========== -->
+  <div class="section">
+    <div class="section-label">05 — Typography</div>
+    <div class="type-showcase">
+      <div class="type-row">
+        <span class="type-label">Display</span>
+        <span style="font-family:'Poiret One',cursive;font-size:36px;color:var(--text-warm);letter-spacing:8px;">Poiret One</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Headings</span>
+        <span style="font-family:'Tenor Sans',serif;font-size:24px;color:var(--text-warm);letter-spacing:3px;">Tenor Sans</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">System</span>
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:14px;color:var(--copper-light);letter-spacing:4px;">IBM Plex Mono</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Body</span>
+        <span style="font-family:'Outfit',sans-serif;font-size:16px;font-weight:300;color:var(--text-muted);letter-spacing:1px;">Outfit Light</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Latin</span>
+        <span style="font-family:'Tenor Sans',serif;font-size:20px;font-style:italic;color:var(--text-dim);letter-spacing:2px;">celāre — to hide, to conceal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Geometric decoration -->
+  <div class="geo-pattern">
+    <div class="bar" style="height:20px;"></div>
+    <div class="bar" style="height:32px;"></div>
+    <div class="bar" style="height:44px;"></div>
+    <div class="bar" style="height:56px;"></div>
+    <div class="bar" style="height:44px;"></div>
+    <div class="bar" style="height:32px;"></div>
+    <div class="bar" style="height:20px;"></div>
+  </div>
+
+</div>
+</body>
+</html>

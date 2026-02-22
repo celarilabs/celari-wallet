@@ -1,0 +1,664 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		077F8A4B4589F812D0D0FC3D /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 97D0854EA483B625898D1302 /* Account.swift */; };
+		0A47F13692D67BC7DFA9616C /* BackupManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4543D8D84D4AFA61222D7CF0 /* BackupManager.swift */; };
+		183A8CB42CEBADCE1D459611 /* CelariWalletApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE2F33FBECD1AAA692E269C5 /* CelariWalletApp.swift */; };
+		19631A237627508C0F8D13A3 /* PasskeyManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 04886BCB08EC5A0AB8B7F879 /* PasskeyManager.swift */; };
+		3438E6A8D250322E5BF75759 /* AddTokenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F0CECA6AC3C5EDB1025C3C54 /* AddTokenView.swift */; };
+		35369B7551E9FD6BE0619524 /* ActivityListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C10921F1CFC56BD4355FCE76 /* ActivityListView.swift */; };
+		41A51339E609688D590BD0CD /* DiamondIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = 143E94CC6E61E3F0FCC524BD /* DiamondIcon.swift */; };
+		495CCD2ED1859C0DA767192E /* CelariTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = E4BC46738534FDEB44B8EE8A /* CelariTheme.swift */; };
+		496D8E2DC07241B09C360E6D /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9295ED094EE93484AA2AB675 /* OnboardingView.swift */; };
+		4F0A15A47E199A5BB7B9B415 /* RestoreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7835AE78C2D0A99B82A61A0C /* RestoreView.swift */; };
+		5E627A9AE0DD6C1DE4840010 /* pxe-bridge.html in Resources */ = {isa = PBXBuildFile; fileRef = F7065F5128DC1B0829AA4587 /* pxe-bridge.html */; };
+		5F010F5D3FE91B99EACA3215 /* pxe-bridge-shim.js in Resources */ = {isa = PBXBuildFile; fileRef = EC1E195A46FCEA880E968FE4 /* pxe-bridge-shim.js */; };
+		61165897687CCE8123B4E8A7 /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C66B15782D135803DEE3CE3 /* ViewModifiers.swift */; };
+		62CDA2B93A41C9A5A409F342 /* FormField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3BF118DFC5BC9FA624ADAD /* FormField.swift */; };
+		65E9D7FCA7072B90DACD323A /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D09F8CF8C2562642853CF01 /* HeaderView.swift */; };
+		6AC41DDF030D7C888F543EFB /* CelariWalletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E25BBCC267683D41B285EA8 /* CelariWalletTests.swift */; };
+		6E95A9EC3BA25CC55BD0ACFF /* ToastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD60E694DFF2E5BF1950391 /* ToastOverlay.swift */; };
+		70E32D176E51701692DD4A9E /* KeychainManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2EE66FBCC262142B654803F1 /* KeychainManager.swift */; };
+		74D59BFF603C0749A376B3E4 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9F1642ED814E408DDF04D6A /* DashboardView.swift */; };
+		753E745F80B127F60DAAE980 /* ConfirmTxView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D0BC3EDE8012F09C4BB8B72 /* ConfirmTxView.swift */; };
+		788C09E31AAEAB1AEA21D5DD /* ActionButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C59B18FD85AF0D07B004DA9 /* ActionButton.swift */; };
+		7CE7C70F52C2A91B7B49F9DE /* NftListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 951EE84245A4742020EBA197 /* NftListView.swift */; };
+		7FEEA1405DF7BCD65816E577 /* TokenListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44E5EE7D5B98EB2EEFE3F34C /* TokenListView.swift */; };
+		8BF9F486D6FBDFB2CA36166C /* SendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D8547681D32D98869036A7C4 /* SendView.swift */; };
+		8C11F38406498D6B9D66B5C7 /* offscreen.js in Resources */ = {isa = PBXBuildFile; fileRef = 6F706ACEF49E33ED0EE7D922 /* offscreen.js */; };
+		8DD792B0750FA582ECE266DD /* AddAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BF18DF2C8CDE17C2A5A58F /* AddAccountView.swift */; };
+		8FE8795CEAA9C0EF29D77908 /* SubHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E508B419A1BD6F16BFF3AE4F /* SubHeaderView.swift */; };
+		90FE2D116CBBE4BDD0FDB592 /* WalletConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1C577B408C2373DBB9D843 /* WalletConnectView.swift */; };
+		98769E955876B5F761684DD0 /* NftDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FF242E882D42654BEF6186 /* NftDetailView.swift */; };
+		99092D4D119C3346489F0A05 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7EAEA6EA7D61DEAC781B7B /* RootView.swift */; };
+		99D3FA8EA9FBC337CFED6381 /* BalanceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFD6FA390EE61BA286096D /* BalanceCardView.swift */; };
+		A0252C3924DC1961132FA7E8 /* NetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC89992F2DB9F93999222FB2 /* NetworkManager.swift */; };
+		A05FF2B47D9473500DA5985A /* buffer-polyfill.js in Resources */ = {isa = PBXBuildFile; fileRef = CC45D382801E1523A1D24372 /* buffer-polyfill.js */; };
+		A3E4F987F4D5CBC6169FA96D /* acvm_js_bg.wasm in Resources */ = {isa = PBXBuildFile; fileRef = F72F558BDDE1AA2E6F1D7084 /* acvm_js_bg.wasm */; };
+		A7DCF9A596209143B63BBE67 /* AccountSelectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9A02C9A7D1EB0F7F138FF62 /* AccountSelectorView.swift */; };
+		ADFDCC5C7B6A6A5C18293821 /* ReceiveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CA468F66730A808DBC4D41C /* ReceiveView.swift */; };
+		C25EFF8B2E77888745535C85 /* AddNftContractView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BA625C017C6FC46CB0B0C51 /* AddNftContractView.swift */; };
+		C99832E05CE94F27203C85EC /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4715BF247B5203305AAC88D9 /* LoadingView.swift */; };
+		C9A413B90BD9EE45479333AD /* NFT.swift in Sources */ = {isa = PBXBuildFile; fileRef = E75A966B54E09C067E8324AA /* NFT.swift */; };
+		CAD43F34B7CCF8B722FF7CA5 /* WcApproveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2180226AD3DBFBDE0A1F15F6 /* WcApproveView.swift */; };
+		D02B8B65BF8620082D45237D /* BackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B248145B91FBFD0CE187D16A /* BackupView.swift */; };
+		D1C527F2341B62D64CABC998 /* WCSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A8761765263B7A2A95C38C /* WCSession.swift */; };
+		D4605C96DC0FFDAC125E56DE /* PXEBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A97830F777A6D421F81569 /* PXEBridge.swift */; };
+		E1A2B3C4D5E6F708192A3B4C /* PXEPersistenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* PXEPersistenceManager.swift */; };
+		D4E1DA9ED1FD37CE5B97A0EA /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334BF7C78DDB3D132AC9479A /* Activity.swift */; };
+		E82BEF0725CC078F9951E1D7 /* noirc_abi_wasm_bg.wasm in Resources */ = {isa = PBXBuildFile; fileRef = 62F8879152F0EFAE6E717295 /* noirc_abi_wasm_bg.wasm */; };
+		EFBBC0EE46F50754ED41D22F /* Token.swift in Sources */ = {isa = PBXBuildFile; fileRef = B958307684C9EA050AEB8F39 /* Token.swift */; };
+		F4E784CD1B52BF5EA4AB56F9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CBA9C764D311F85FA09C9C /* SettingsView.swift */; };
+		F83C6569DE0BEFA40FADC1DD /* WalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF6C29C20C338FFEA7D20585 /* WalletStore.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		19167E4475AF77E548A5D3F7 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3375C32BC65B2BF67DE4B2FC /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 67396E096D1FDB63EEF5E296;
+			remoteInfo = CelariWallet;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		04886BCB08EC5A0AB8B7F879 /* PasskeyManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasskeyManager.swift; sourceTree = "<group>"; };
+		054E3C4C49AECABAABFBDDED /* CelariWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CelariWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		06BF18DF2C8CDE17C2A5A58F /* AddAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAccountView.swift; sourceTree = "<group>"; };
+		1270E128990B45A17AAAB82A /* CelariWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CelariWallet.entitlements; sourceTree = "<group>"; };
+		143E94CC6E61E3F0FCC524BD /* DiamondIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiamondIcon.swift; sourceTree = "<group>"; };
+		181B9ECA525D063C0B2593F5 /* CelariWalletTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CelariWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		2180226AD3DBFBDE0A1F15F6 /* WcApproveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WcApproveView.swift; sourceTree = "<group>"; };
+		24BFD6FA390EE61BA286096D /* BalanceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceCardView.swift; sourceTree = "<group>"; };
+		2EE66FBCC262142B654803F1 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
+		334BF7C78DDB3D132AC9479A /* Activity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Activity.swift; sourceTree = "<group>"; };
+		3CA468F66730A808DBC4D41C /* ReceiveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiveView.swift; sourceTree = "<group>"; };
+		3D09F8CF8C2562642853CF01 /* HeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HeaderView.swift; sourceTree = "<group>"; };
+		3E1C577B408C2373DBB9D843 /* WalletConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletConnectView.swift; sourceTree = "<group>"; };
+		44E5EE7D5B98EB2EEFE3F34C /* TokenListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TokenListView.swift; sourceTree = "<group>"; };
+		4543D8D84D4AFA61222D7CF0 /* BackupManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupManager.swift; sourceTree = "<group>"; };
+		4715BF247B5203305AAC88D9 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		4C3BF118DFC5BC9FA624ADAD /* FormField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormField.swift; sourceTree = "<group>"; };
+		4E25BBCC267683D41B285EA8 /* CelariWalletTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelariWalletTests.swift; sourceTree = "<group>"; };
+		62F8879152F0EFAE6E717295 /* noirc_abi_wasm_bg.wasm */ = {isa = PBXFileReference; path = noirc_abi_wasm_bg.wasm; sourceTree = "<group>"; };
+		6F706ACEF49E33ED0EE7D922 /* offscreen.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = offscreen.js; sourceTree = "<group>"; };
+		7835AE78C2D0A99B82A61A0C /* RestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreView.swift; sourceTree = "<group>"; };
+		7BA625C017C6FC46CB0B0C51 /* AddNftContractView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddNftContractView.swift; sourceTree = "<group>"; };
+		83A8761765263B7A2A95C38C /* WCSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WCSession.swift; sourceTree = "<group>"; };
+		8D0BC3EDE8012F09C4BB8B72 /* ConfirmTxView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfirmTxView.swift; sourceTree = "<group>"; };
+		8E7EAEA6EA7D61DEAC781B7B /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		9295ED094EE93484AA2AB675 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		951EE84245A4742020EBA197 /* NftListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NftListView.swift; sourceTree = "<group>"; };
+		97D0854EA483B625898D1302 /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
+		9C59B18FD85AF0D07B004DA9 /* ActionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButton.swift; sourceTree = "<group>"; };
+		9C66B15782D135803DEE3CE3 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
+		AFD60E694DFF2E5BF1950391 /* ToastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastOverlay.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5C /* PXEPersistenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PXEPersistenceManager.swift; sourceTree = "<group>"; };
+		B1A97830F777A6D421F81569 /* PXEBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PXEBridge.swift; sourceTree = "<group>"; };
+		B248145B91FBFD0CE187D16A /* BackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupView.swift; sourceTree = "<group>"; };
+		B958307684C9EA050AEB8F39 /* Token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Token.swift; sourceTree = "<group>"; };
+		B9A02C9A7D1EB0F7F138FF62 /* AccountSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AccountSelectorView.swift; sourceTree = "<group>"; };
+		BC89992F2DB9F93999222FB2 /* NetworkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NetworkManager.swift; sourceTree = "<group>"; };
+		BF6C29C20C338FFEA7D20585 /* WalletStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WalletStore.swift; sourceTree = "<group>"; };
+		C10921F1CFC56BD4355FCE76 /* ActivityListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityListView.swift; sourceTree = "<group>"; };
+		C1CBA9C764D311F85FA09C9C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		CC45D382801E1523A1D24372 /* buffer-polyfill.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "buffer-polyfill.js"; sourceTree = "<group>"; };
+		D4FF242E882D42654BEF6186 /* NftDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NftDetailView.swift; sourceTree = "<group>"; };
+		D8547681D32D98869036A7C4 /* SendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendView.swift; sourceTree = "<group>"; };
+		D9F1642ED814E408DDF04D6A /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		E4BC46738534FDEB44B8EE8A /* CelariTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelariTheme.swift; sourceTree = "<group>"; };
+		E508B419A1BD6F16BFF3AE4F /* SubHeaderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubHeaderView.swift; sourceTree = "<group>"; };
+		E75A966B54E09C067E8324AA /* NFT.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NFT.swift; sourceTree = "<group>"; };
+		EC1E195A46FCEA880E968FE4 /* pxe-bridge-shim.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = "pxe-bridge-shim.js"; sourceTree = "<group>"; };
+		F0CECA6AC3C5EDB1025C3C54 /* AddTokenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddTokenView.swift; sourceTree = "<group>"; };
+		F7065F5128DC1B0829AA4587 /* pxe-bridge.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "pxe-bridge.html"; sourceTree = "<group>"; };
+		F72F558BDDE1AA2E6F1D7084 /* acvm_js_bg.wasm */ = {isa = PBXFileReference; path = acvm_js_bg.wasm; sourceTree = "<group>"; };
+		FE2F33FBECD1AAA692E269C5 /* CelariWalletApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelariWalletApp.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		021AA88D72F33C9E0F0A65F8 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				97D0854EA483B625898D1302 /* Account.swift */,
+				334BF7C78DDB3D132AC9479A /* Activity.swift */,
+				E75A966B54E09C067E8324AA /* NFT.swift */,
+				B958307684C9EA050AEB8F39 /* Token.swift */,
+				83A8761765263B7A2A95C38C /* WCSession.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		57B908856D3259DD9645E129 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				054E3C4C49AECABAABFBDDED /* CelariWallet.app */,
+				181B9ECA525D063C0B2593F5 /* CelariWalletTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6E420F00530B18DE2C27F216 = {
+			isa = PBXGroup;
+			children = (
+				BB14BDB52F53B0A9EDC17222 /* CelariWallet */,
+				B575D8E6DBA9D35A3954EEC5 /* CelariWalletTests */,
+				57B908856D3259DD9645E129 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		8BE8599D36D4478F9BD8B047 /* Dashboard */ = {
+			isa = PBXGroup;
+			children = (
+				B9A02C9A7D1EB0F7F138FF62 /* AccountSelectorView.swift */,
+				C10921F1CFC56BD4355FCE76 /* ActivityListView.swift */,
+				24BFD6FA390EE61BA286096D /* BalanceCardView.swift */,
+				D9F1642ED814E408DDF04D6A /* DashboardView.swift */,
+				951EE84245A4742020EBA197 /* NftListView.swift */,
+				44E5EE7D5B98EB2EEFE3F34C /* TokenListView.swift */,
+			);
+			path = Dashboard;
+			sourceTree = "<group>";
+		};
+		922EFB4132A03638ECEC63EE /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				F72F558BDDE1AA2E6F1D7084 /* acvm_js_bg.wasm */,
+				CC45D382801E1523A1D24372 /* buffer-polyfill.js */,
+				62F8879152F0EFAE6E717295 /* noirc_abi_wasm_bg.wasm */,
+				6F706ACEF49E33ED0EE7D922 /* offscreen.js */,
+				EC1E195A46FCEA880E968FE4 /* pxe-bridge-shim.js */,
+				F7065F5128DC1B0829AA4587 /* pxe-bridge.html */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		9926863E1C172369589FCA63 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				06BF18DF2C8CDE17C2A5A58F /* AddAccountView.swift */,
+				7BA625C017C6FC46CB0B0C51 /* AddNftContractView.swift */,
+				F0CECA6AC3C5EDB1025C3C54 /* AddTokenView.swift */,
+				B248145B91FBFD0CE187D16A /* BackupView.swift */,
+				8D0BC3EDE8012F09C4BB8B72 /* ConfirmTxView.swift */,
+				4715BF247B5203305AAC88D9 /* LoadingView.swift */,
+				D4FF242E882D42654BEF6186 /* NftDetailView.swift */,
+				9295ED094EE93484AA2AB675 /* OnboardingView.swift */,
+				3CA468F66730A808DBC4D41C /* ReceiveView.swift */,
+				7835AE78C2D0A99B82A61A0C /* RestoreView.swift */,
+				8E7EAEA6EA7D61DEAC781B7B /* RootView.swift */,
+				D8547681D32D98869036A7C4 /* SendView.swift */,
+				C1CBA9C764D311F85FA09C9C /* SettingsView.swift */,
+				3E1C577B408C2373DBB9D843 /* WalletConnectView.swift */,
+				2180226AD3DBFBDE0A1F15F6 /* WcApproveView.swift */,
+				8BE8599D36D4478F9BD8B047 /* Dashboard */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		9D98BD7431ADE873D81F66C7 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				4543D8D84D4AFA61222D7CF0 /* BackupManager.swift */,
+				2EE66FBCC262142B654803F1 /* KeychainManager.swift */,
+				BC89992F2DB9F93999222FB2 /* NetworkManager.swift */,
+				04886BCB08EC5A0AB8B7F879 /* PasskeyManager.swift */,
+				B1A97830F777A6D421F81569 /* PXEBridge.swift */,
+				A1B2C3D4E5F60718293A4B5C /* PXEPersistenceManager.swift */,
+				BF6C29C20C338FFEA7D20585 /* WalletStore.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		AF0EC40BEBF9D882FCEF5631 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				9C59B18FD85AF0D07B004DA9 /* ActionButton.swift */,
+				143E94CC6E61E3F0FCC524BD /* DiamondIcon.swift */,
+				4C3BF118DFC5BC9FA624ADAD /* FormField.swift */,
+				3D09F8CF8C2562642853CF01 /* HeaderView.swift */,
+				E508B419A1BD6F16BFF3AE4F /* SubHeaderView.swift */,
+				AFD60E694DFF2E5BF1950391 /* ToastOverlay.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+		B575D8E6DBA9D35A3954EEC5 /* CelariWalletTests */ = {
+			isa = PBXGroup;
+			children = (
+				4E25BBCC267683D41B285EA8 /* CelariWalletTests.swift */,
+			);
+			path = CelariWalletTests;
+			sourceTree = "<group>";
+		};
+		BB14BDB52F53B0A9EDC17222 /* CelariWallet */ = {
+			isa = PBXGroup;
+			children = (
+				1270E128990B45A17AAAB82A /* CelariWallet.entitlements */,
+				FE2F33FBECD1AAA692E269C5 /* CelariWalletApp.swift */,
+				AF0EC40BEBF9D882FCEF5631 /* Components */,
+				9D98BD7431ADE873D81F66C7 /* Core */,
+				021AA88D72F33C9E0F0A65F8 /* Models */,
+				922EFB4132A03638ECEC63EE /* Resources */,
+				BBD24753409925CEFFCBDA7E /* Theme */,
+				9926863E1C172369589FCA63 /* Views */,
+			);
+			path = CelariWallet;
+			sourceTree = "<group>";
+		};
+		BBD24753409925CEFFCBDA7E /* Theme */ = {
+			isa = PBXGroup;
+			children = (
+				E4BC46738534FDEB44B8EE8A /* CelariTheme.swift */,
+				9C66B15782D135803DEE3CE3 /* ViewModifiers.swift */,
+			);
+			path = Theme;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		34DA7A8DE36455ED7554A280 /* CelariWalletTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 37BE191312C15F9D93AF6CE0 /* Build configuration list for PBXNativeTarget "CelariWalletTests" */;
+			buildPhases = (
+				8A91688D87608FEAF286D068 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				44A1D9120CB655B8F1F0E529 /* PBXTargetDependency */,
+			);
+			name = CelariWalletTests;
+			packageProductDependencies = (
+			);
+			productName = CelariWalletTests;
+			productReference = 181B9ECA525D063C0B2593F5 /* CelariWalletTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		67396E096D1FDB63EEF5E296 /* CelariWallet */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A62A2460E8072AC255CA5B36 /* Build configuration list for PBXNativeTarget "CelariWallet" */;
+			buildPhases = (
+				875E303C8BD191C351D15046 /* Sources */,
+				3F10EC5FB83B4DF77B78C954 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = CelariWallet;
+			packageProductDependencies = (
+			);
+			productName = CelariWallet;
+			productReference = 054E3C4C49AECABAABFBDDED /* CelariWallet.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		3375C32BC65B2BF67DE4B2FC /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1600;
+				TargetAttributes = {
+					34DA7A8DE36455ED7554A280 = {
+						DevelopmentTeam = GBQUC68GE9;
+					};
+					67396E096D1FDB63EEF5E296 = {
+						DevelopmentTeam = GBQUC68GE9;
+					};
+				};
+			};
+			buildConfigurationList = 78A11D2835A2B65A41F00D7B /* Build configuration list for PBXProject "CelariWallet" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 6E420F00530B18DE2C27F216;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				67396E096D1FDB63EEF5E296 /* CelariWallet */,
+				34DA7A8DE36455ED7554A280 /* CelariWalletTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		3F10EC5FB83B4DF77B78C954 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A3E4F987F4D5CBC6169FA96D /* acvm_js_bg.wasm in Resources */,
+				A05FF2B47D9473500DA5985A /* buffer-polyfill.js in Resources */,
+				E82BEF0725CC078F9951E1D7 /* noirc_abi_wasm_bg.wasm in Resources */,
+				8C11F38406498D6B9D66B5C7 /* offscreen.js in Resources */,
+				5F010F5D3FE91B99EACA3215 /* pxe-bridge-shim.js in Resources */,
+				5E627A9AE0DD6C1DE4840010 /* pxe-bridge.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		875E303C8BD191C351D15046 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				077F8A4B4589F812D0D0FC3D /* Account.swift in Sources */,
+				A7DCF9A596209143B63BBE67 /* AccountSelectorView.swift in Sources */,
+				788C09E31AAEAB1AEA21D5DD /* ActionButton.swift in Sources */,
+				D4E1DA9ED1FD37CE5B97A0EA /* Activity.swift in Sources */,
+				35369B7551E9FD6BE0619524 /* ActivityListView.swift in Sources */,
+				8DD792B0750FA582ECE266DD /* AddAccountView.swift in Sources */,
+				C25EFF8B2E77888745535C85 /* AddNftContractView.swift in Sources */,
+				3438E6A8D250322E5BF75759 /* AddTokenView.swift in Sources */,
+				0A47F13692D67BC7DFA9616C /* BackupManager.swift in Sources */,
+				D02B8B65BF8620082D45237D /* BackupView.swift in Sources */,
+				99D3FA8EA9FBC337CFED6381 /* BalanceCardView.swift in Sources */,
+				495CCD2ED1859C0DA767192E /* CelariTheme.swift in Sources */,
+				183A8CB42CEBADCE1D459611 /* CelariWalletApp.swift in Sources */,
+				753E745F80B127F60DAAE980 /* ConfirmTxView.swift in Sources */,
+				74D59BFF603C0749A376B3E4 /* DashboardView.swift in Sources */,
+				41A51339E609688D590BD0CD /* DiamondIcon.swift in Sources */,
+				62CDA2B93A41C9A5A409F342 /* FormField.swift in Sources */,
+				65E9D7FCA7072B90DACD323A /* HeaderView.swift in Sources */,
+				70E32D176E51701692DD4A9E /* KeychainManager.swift in Sources */,
+				C99832E05CE94F27203C85EC /* LoadingView.swift in Sources */,
+				C9A413B90BD9EE45479333AD /* NFT.swift in Sources */,
+				A0252C3924DC1961132FA7E8 /* NetworkManager.swift in Sources */,
+				98769E955876B5F761684DD0 /* NftDetailView.swift in Sources */,
+				7CE7C70F52C2A91B7B49F9DE /* NftListView.swift in Sources */,
+				496D8E2DC07241B09C360E6D /* OnboardingView.swift in Sources */,
+				D4605C96DC0FFDAC125E56DE /* PXEBridge.swift in Sources */,
+				E1A2B3C4D5E6F708192A3B4C /* PXEPersistenceManager.swift in Sources */,
+				19631A237627508C0F8D13A3 /* PasskeyManager.swift in Sources */,
+				ADFDCC5C7B6A6A5C18293821 /* ReceiveView.swift in Sources */,
+				4F0A15A47E199A5BB7B9B415 /* RestoreView.swift in Sources */,
+				99092D4D119C3346489F0A05 /* RootView.swift in Sources */,
+				8BF9F486D6FBDFB2CA36166C /* SendView.swift in Sources */,
+				F4E784CD1B52BF5EA4AB56F9 /* SettingsView.swift in Sources */,
+				8FE8795CEAA9C0EF29D77908 /* SubHeaderView.swift in Sources */,
+				6E95A9EC3BA25CC55BD0ACFF /* ToastOverlay.swift in Sources */,
+				EFBBC0EE46F50754ED41D22F /* Token.swift in Sources */,
+				7FEEA1405DF7BCD65816E577 /* TokenListView.swift in Sources */,
+				61165897687CCE8123B4E8A7 /* ViewModifiers.swift in Sources */,
+				D1C527F2341B62D64CABC998 /* WCSession.swift in Sources */,
+				90FE2D116CBBE4BDD0FDB592 /* WalletConnectView.swift in Sources */,
+				F83C6569DE0BEFA40FADC1DD /* WalletStore.swift in Sources */,
+				CAD43F34B7CCF8B722FF7CA5 /* WcApproveView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8A91688D87608FEAF286D068 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				6AC41DDF030D7C888F543EFB /* CelariWalletTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		44A1D9120CB655B8F1F0E529 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 67396E096D1FDB63EEF5E296 /* CelariWallet */;
+			targetProxy = 19167E4475AF77E548A5D3F7 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		104D8EFB6AED9F51D08C7B50 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.celari.wallet.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CelariWallet.app/CelariWallet";
+			};
+			name = Debug;
+		};
+		25E144B89B90F4EC85E2995E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = GBQUC68GE9;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Celari Wallet uses Face ID to secure your transactions";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Release;
+		};
+		C57EF72C5CC6619CBB6D7C33 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.celari.wallet.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CelariWallet.app/CelariWallet";
+			};
+			name = Release;
+		};
+		C6544D58BF637F068E313382 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CelariWallet/CelariWallet.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Celari;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.celari.wallet;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		C888191ED246C5F8EE780B84 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = CelariWallet/CelariWallet.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Celari;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.5.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.celari.wallet;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		EB7FDEEC6179BBB4198E6867 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = GBQUC68GE9;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Celari Wallet uses Face ID to secure your transactions";
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.9;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		37BE191312C15F9D93AF6CE0 /* Build configuration list for PBXNativeTarget "CelariWalletTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				104D8EFB6AED9F51D08C7B50 /* Debug */,
+				C57EF72C5CC6619CBB6D7C33 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		78A11D2835A2B65A41F00D7B /* Build configuration list for PBXProject "CelariWallet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				EB7FDEEC6179BBB4198E6867 /* Debug */,
+				25E144B89B90F4EC85E2995E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A62A2460E8072AC255CA5B36 /* Build configuration list for PBXNativeTarget "CelariWallet" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C888191ED246C5F8EE780B84 /* Debug */,
+				C6544D58BF637F068E313382 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 3375C32BC65B2BF67DE4B2FC /* Project object */;
+}

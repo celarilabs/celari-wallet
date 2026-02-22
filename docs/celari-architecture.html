@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celari Wallet — Mimari ve Teknik Sunum</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --surface2: #1a1a26;
+    --border: #2a2a3a;
+    --gold: #c9a84c;
+    --gold-light: #e8d48b;
+    --text: #e8e8f0;
+    --text-dim: #8888a0;
+    --accent: #6366f1;
+    --green: #22c55e;
+    --red: #ef4444;
+    --blue: #3b82f6;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    padding: 0;
+  }
+
+  /* Print styles */
+  @media print {
+    body { background: white; color: #111; }
+    .slide { break-after: page; box-shadow: none; border: 1px solid #ddd; }
+    :root { --bg: #fff; --surface: #f8f8f8; --surface2: #f0f0f0; --border: #ddd; --text: #111; --text-dim: #666; }
+  }
+
+  .slide {
+    max-width: 960px;
+    margin: 40px auto;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 48px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .slide::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--gold), var(--accent), var(--gold));
+  }
+
+  .slide-number {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    font-size: 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  h1 {
+    font-size: 36px;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--gold), var(--gold-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--gold);
+    margin-bottom: 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  h3 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--gold-light);
+    margin: 24px 0 12px;
+  }
+
+  .subtitle {
+    font-size: 18px;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+  }
+
+  p { margin-bottom: 16px; }
+
+  .grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin: 20px 0;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin: 20px 0;
+  }
+
+  .card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gold);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+
+  .card-value {
+    font-size: 24px;
+    font-weight: 700;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .badge-gold { background: rgba(201, 168, 76, 0.15); color: var(--gold); }
+  .badge-green { background: rgba(34, 197, 94, 0.15); color: var(--green); }
+  .badge-red { background: rgba(239, 68, 68, 0.15); color: var(--red); }
+  .badge-blue { background: rgba(59, 130, 246, 0.15); color: var(--blue); }
+
+  ul { padding-left: 24px; margin: 12px 0; }
+  li { margin: 6px 0; }
+
+  .code-block {
+    background: #0d0d15;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    overflow-x: auto;
+    margin: 16px 0;
+    white-space: pre;
+    line-height: 1.5;
+  }
+
+  .highlight { color: var(--gold); font-weight: 600; }
+
+  .flow-step {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin: 16px 0;
+  }
+
+  .flow-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #a08030);
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .flow-content { flex: 1; }
+  .flow-content strong { color: var(--gold-light); }
+
+  .mermaid {
+    background: var(--surface2);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 20px 0;
+    text-align: center;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+  }
+
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    color: var(--gold);
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .comparison-row td:first-child { font-weight: 600; color: var(--gold-light); }
+
+  .warning-box {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+
+  .success-box {
+    background: rgba(34, 197, 94, 0.08);
+    border: 1px solid rgba(34, 197, 94, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+
+  .info-box {
+    background: rgba(59, 130, 246, 0.08);
+    border: 1px solid rgba(59, 130, 246, 0.25);
+    border-radius: 12px;
+    padding: 20px;
+    margin: 16px 0;
+  }
+
+  .arrow { color: var(--gold); font-size: 20px; }
+
+  footer {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== SLIDE 1: COVER ==================== -->
+<div class="slide">
+  <span class="slide-number">01</span>
+  <div style="text-align: center; padding: 40px 0;">
+    <div style="font-size: 48px; margin-bottom: 16px;">◇</div>
+    <h1 style="font-size: 48px;">CELARI WALLET</h1>
+    <p class="subtitle">Mimari ve Teknik Sunum</p>
+    <div style="margin: 32px 0;">
+      <span class="badge badge-gold">Aztec Network</span>
+      <span class="badge badge-green">WebAuthn / Passkey</span>
+      <span class="badge badge-blue">Chrome Extension</span>
+    </div>
+    <p style="color: var(--text-dim); font-size: 14px; margin-top: 40px;">
+      Versiyon 0.3.0 · Şubat 2026 · Testnet
+    </p>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 2: OVERVIEW ==================== -->
+<div class="slide">
+  <span class="slide-number">02</span>
+  <h2>Proje Özeti</h2>
+
+  <p>Celari Wallet, <span class="highlight">Aztec Network</span> üzerinde çalışan gizlilik odaklı bir kripto cüzdandır.
+  Geleneksel seed phrase yerine <span class="highlight">WebAuthn/Passkey</span> (biyometrik kimlik doğrulama) kullanır.</p>
+
+  <div class="grid-3">
+    <div class="card">
+      <div class="card-title">Kimlik Doğrulama</div>
+      <div class="card-value">Passkey</div>
+      <p style="font-size: 13px; color: var(--text-dim); margin-top: 8px;">Face ID, Touch ID, Windows Hello. Seed phrase yok.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Blockchain</div>
+      <div class="card-value">Aztec L2</div>
+      <p style="font-size: 13px; color: var(--text-dim); margin-top: 8px;">ZK rollup, Ethereum Sepolia üzerinde. Gizli transferler.</p>
+    </div>
+    <div class="card">
+      <div class="card-title">Platform</div>
+      <div class="card-value">Chrome Ext.</div>
+      <p style="font-size: 13px; color: var(--text-dim); margin-top: 8px;">Manifest V3. Service worker + popup UI.</p>
+    </div>
+  </div>
+
+  <h3>Temel Bileşenler</h3>
+  <table>
+    <tr><th>Bileşen</th><th>Teknoloji</th><th>Açıklama</th></tr>
+    <tr><td>Chrome Extension</td><td>Vanilla JS, esbuild</td><td>Kullanıcı arayüzü + cüzdan yönetimi</td></tr>
+    <tr><td>Deploy Server</td><td>Node.js, TypeScript</td><td>Hesap deploy + token işlemleri</td></tr>
+    <tr><td>Noir Contract</td><td>Noir (Aztec ZK DSL)</td><td>P256 imza doğrulama on-chain</td></tr>
+    <tr><td>PXE (Private eXecution)</td><td>Aztec SDK</td><td>Proof üretimi + private state yönetimi</td></tr>
+  </table>
+</div>
+
+<!-- ==================== SLIDE 3: ARCHITECTURE DIAGRAM ==================== -->
+<div class="slide">
+  <span class="slide-number">03</span>
+  <h2>Genel Mimari</h2>
+
+  <div class="mermaid">
+graph TB
+    subgraph "Kullanıcı Tarafı"
+        A["🖥️ Chrome Extension<br/>(Popup + Background)"]
+        B["🔐 WebAuthn<br/>Secure Enclave"]
+    end
+
+    subgraph "Sunucu Tarafı"
+        C["⚙️ Deploy Server<br/>(Node.js + PXE)"]
+        D["📦 SponsoredFPC<br/>(Ücretsiz Gas)"]
+    end
+
+    subgraph "Aztec Network (Testnet)"
+        E["🔗 RPC Node<br/>rpc.testnet.aztec-labs.com"]
+        F["📜 CelariPasskeyAccount<br/>(Noir Contract)"]
+        G["🪙 CLR Token<br/>(ERC20-like)"]
+    end
+
+    subgraph "L1 Ethereum (Sepolia)"
+        H["⛓️ Rollup Contract<br/>Proof Verification"]
+    end
+
+    A -->|"Passkey oluştur"| B
+    A -->|"HTTP API"| C
+    C -->|"JSON-RPC"| E
+    C -->|"Deploy tx"| F
+    C -->|"Mint/Transfer"| G
+    D -->|"Gas sponsor"| E
+    E -->|"ZK Proof"| H
+    B -->|"P256 imza"| A
+  </div>
+
+  <div class="info-box">
+    <strong>Veri Akışı:</strong> Kullanıcı extension üzerinden işlem yapar → Deploy server PXE ile proof üretir →
+    Aztec node'a gönderir → ZK proof L1'de doğrulanır.
+  </div>
+</div>
+
+<!-- ==================== SLIDE 4: EXTENSION ARCHITECTURE ==================== -->
+<div class="slide">
+  <span class="slide-number">04</span>
+  <h2>Chrome Extension Mimarisi</h2>
+
+  <div class="mermaid">
+graph LR
+    subgraph "Extension (Manifest V3)"
+        P["popup.js<br/>36.6kb<br/>Ana UI"]
+        BG["background.js<br/>5kb<br/>Service Worker"]
+        CS["content.js<br/>923b<br/>dApp köprüsü"]
+        IP["inpage.js<br/>1.2kb<br/>window.celari"]
+    end
+
+    P -->|"chrome.runtime<br/>message"| BG
+    BG -->|"chrome.tabs<br/>message"| CS
+    CS -->|"window.postMessage"| IP
+    IP -->|"Provider API"| WEB["🌐 dApp"]
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">popup.js — Ana Arayüz</div>
+      <ul style="font-size: 14px;">
+        <li>Single-page React-benzeri state yönetimi</li>
+        <li>Ekranlar: welcome, create, import, dashboard, send, receive, settings</li>
+        <li>Demo / Gerçek hesap ayrımı (<code>isDemo()</code>)</li>
+        <li>Deploy server'a HTTP istekleri</li>
+        <li>WebAuthn passkey oluşturma + doğrulama</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">background.js — Service Worker</div>
+      <ul style="font-size: 14px;">
+        <li>PXE bağlantı kontrolü (30sn aralıkla)</li>
+        <li>Hesap yönetimi (chrome.storage.local)</li>
+        <li>dApp imza onay akışı (pendingSignRequests)</li>
+        <li>Network seçimi (local/devnet/testnet)</li>
+        <li>JSON-RPC ile node iletişimi</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Dosya Yapısı</h3>
+  <div class="code-block">extension/
+├── public/
+│   ├── manifest.json          # MV3 manifest
+│   ├── popup.html             # Ana HTML
+│   ├── src/
+│   │   ├── pages/popup.js     # Ana UI (36.6kb)
+│   │   ├── background.js      # Service worker (5kb)
+│   │   ├── content.js         # dApp köprüsü
+│   │   └── inpage.js          # window.celari provider
+│   ├── icons/                 # Extension ikonları
+│   └── fonts/                 # Self-hosted fontlar
+├── build.mjs                  # esbuild yapılandırması
+└── dist/                      # Derlenen çıktı</div>
+</div>
+
+<!-- ==================== SLIDE 5: ACCOUNT CREATION FLOW ==================== -->
+<div class="slide">
+  <span class="slide-number">05</span>
+  <h2>Hesap Oluşturma Akışı</h2>
+
+  <div class="mermaid">
+sequenceDiagram
+    participant U as 👤 Kullanıcı
+    participant E as 🖥️ Extension
+    participant W as 🔐 WebAuthn
+    participant S as ⚙️ Deploy Server
+    participant PXE as 📦 PXE
+    participant AZ as 🔗 Aztec Node
+
+    U->>E: "Create Wallet" tıkla
+    E->>W: navigator.credentials.create()
+    W->>U: Biyometrik istem (Face ID)
+    U->>W: Onay ✓
+    W->>E: P256 Public Key (x, y) + credentialId
+
+    Note over E: Extension public key'i saklar<br/>(chrome.storage.local)
+
+    U->>E: "Deploy" tıkla
+    E->>S: POST /api/deploy
+    Note over S: Server kendi P256<br/>key pair üretir
+
+    S->>PXE: CelariPasskeyAccount oluştur
+    PXE->>PXE: ZK Proof üret (~30sn)
+    PXE->>AZ: Deploy tx gönder
+    AZ-->>PXE: Block onayı
+    PXE-->>S: Tx receipt
+    S-->>E: {address, txHash, blockNumber}
+    E-->>U: "Account deployed!" ✅
+  </div>
+
+  <div class="warning-box">
+    <strong>⚠️ Testnet Kısıtlaması:</strong> Şu an deploy server kendi P256 key pair'i üretiyor (CLI private key ile imzalama).
+    Production'da kullanıcının kendi WebAuthn anahtarı ile deploy edilmeli.
+  </div>
+
+  <h3>WebAuthn Passkey Detayları</h3>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Oluşturma (Create)</div>
+      <div class="code-block" style="font-size: 12px;">navigator.credentials.create({
+  publicKey: {
+    rp: { name: "Celari Wallet" },
+    user: { name: "celari-user-..." },
+    pubKeyCredParams: [
+      { alg: -7, type: "public-key" }
+      // ES256 = ECDSA P-256
+    ],
+    authenticatorSelection: {
+      residentKey: "preferred"
+    }
+  }
+})</div>
+    </div>
+    <div class="card">
+      <div class="card-title">İmzalama (Sign)</div>
+      <div class="code-block" style="font-size: 12px;">navigator.credentials.get({
+  publicKey: {
+    challenge: messageHash,
+    rpId: location.hostname,
+    allowCredentials: [{
+      type: "public-key",
+      id: credentialId
+    }],
+    userVerification: "required"
+  }
+})
+// → P256 signature (r || s)</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 6: NOIR CONTRACT ==================== -->
+<div class="slide">
+  <span class="slide-number">06</span>
+  <h2>Noir Akıllı Kontrat</h2>
+  <p class="subtitle">CelariPasskeyAccount — P256 İmza Doğrulama on ZK</p>
+
+  <div class="mermaid">
+graph TD
+    A["Transaction Request"] --> B["entrypoint()"]
+    B --> C["AccountActions.init()"]
+    C --> D["is_valid_impl()"]
+    D --> E["storage.signing_public_key.get_note()"]
+    D --> F["get_auth_witness(outer_hash)"]
+    E --> G["pub_key_x, pub_key_y"]
+    F --> H["signature (64 bytes)"]
+    G --> I["sha256(outer_hash_bytes)"]
+    H --> I
+    I --> J["ecdsa_secp256r1.verify_signature()"]
+    J -->|"✅ Valid"| K["Transaction Executes"]
+    J -->|"❌ Invalid"| L["Revert"]
+  </div>
+
+  <h3>Kontrat Fonksiyonları</h3>
+  <table>
+    <tr><th>Fonksiyon</th><th>Görünürlük</th><th>Açıklama</th></tr>
+    <tr><td><code>constructor(pub_key_x, pub_key_y)</code></td><td>Private</td><td>P256 public key'i private storage'a kaydeder</td></tr>
+    <tr><td><code>entrypoint(app_payload, ...)</code></td><td>Private</td><td>İşlem giriş noktası — auth witness ile doğrulama</td></tr>
+    <tr><td><code>verify_private_authwit(inner_hash)</code></td><td>Private/View</td><td>Delegated yetkilendirme doğrulama</td></tr>
+    <tr><td><code>is_valid_impl(context, outer_hash)</code></td><td>Internal</td><td>P256 ECDSA imza doğrulama (ZK içinde)</td></tr>
+  </table>
+
+  <h3>İmza Doğrulama Süreci</h3>
+  <div class="code-block" style="font-size: 12px;">// 1. Public key'i private storage'dan oku
+let public_key = storage.signing_public_key.get_note();
+
+// 2. Auth witness'tan 64-byte P256 imzayı al
+let witness: [Field; 64] = get_auth_witness(outer_hash);
+
+// 3. outer_hash'i SHA-256 ile hashle (Aztec convention)
+let hashed_message: [u8; 32] = sha256::digest(outer_hash_bytes);
+
+// 4. P256 (secp256r1) ECDSA doğrulama
+std::ecdsa_secp256r1::verify_signature(
+    pub_key_x, pub_key_y, signature, hashed_message
+)</div>
+</div>
+
+<!-- ==================== SLIDE 7: DEPLOY SERVER ==================== -->
+<div class="slide">
+  <span class="slide-number">07</span>
+  <h2>Deploy Server</h2>
+  <p class="subtitle">Hesap deploy, bakiye sorgulama, token transfer</p>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Sunucu Bilgileri</div>
+      <ul style="font-size: 14px;">
+        <li><strong>Adres:</strong> 139.99.149.238:3456</li>
+        <li><strong>Runtime:</strong> Node.js + tsx</li>
+        <li><strong>Process Manager:</strong> PM2</li>
+        <li><strong>OS:</strong> Ubuntu 24.04, 64GB RAM</li>
+        <li><strong>Auto-restart:</strong> pm2 startup</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Bileşenler</div>
+      <ul style="font-size: 14px;">
+        <li><strong>TestWallet:</strong> PXE + proof engine</li>
+        <li><strong>SponsoredFPC:</strong> Ücretsiz gas</li>
+        <li><strong>Schnorr Admin:</strong> Token mint yetkisi</li>
+        <li><strong>CLR Token:</strong> Test token (ERC20)</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>API Endpoints</h3>
+  <table>
+    <tr><th>Endpoint</th><th>Method</th><th>Açıklama</th><th>Süre</th></tr>
+    <tr><td><code>/api/health</code></td><td>GET</td><td>Sunucu durumu + PXE bağlantısı</td><td>~1ms</td></tr>
+    <tr><td><code>/api/deploy</code></td><td>POST</td><td>Yeni CelariPasskeyAccount deploy et</td><td>~2-3 dk</td></tr>
+    <tr><td><code>/api/balances</code></td><td>POST</td><td>Token bakiyelerini sorgula</td><td>~1-5 sn</td></tr>
+    <tr><td><code>/api/transfer</code></td><td>POST</td><td>Token transfer (mint) yap</td><td>~1-2 dk</td></tr>
+  </table>
+
+  <div class="mermaid">
+sequenceDiagram
+    participant E as Extension
+    participant S as Deploy Server
+    participant PXE as PXE Engine
+    participant N as Aztec Node
+
+    Note over S: Başlangıçta PXE + SponsoredFPC<br/>otomatik initialize edilir
+
+    E->>S: POST /api/deploy
+    S->>S: P256 key pair üret
+    S->>PXE: CelariPasskeyAccount oluştur
+    PXE->>PXE: ClientIVC proof (~30sn)
+    PXE->>N: Tx gönder
+    N-->>PXE: Block onayı
+    S-->>E: {address, txHash, ...}
+
+    E->>S: POST /api/transfer {to, amount}
+    S->>S: setupTransferInfra() (ilk seferde)
+    S->>PXE: mint_to_public(to, amount)
+    PXE->>PXE: Proof üret
+    PXE->>N: Tx gönder
+    N-->>PXE: Block onayı
+    S-->>E: {txHash, blockNumber}
+  </div>
+</div>
+
+<!-- ==================== SLIDE 8: TOKEN TRANSFER FLOW ==================== -->
+<div class="slide">
+  <span class="slide-number">08</span>
+  <h2>Token Transfer Akışı</h2>
+
+  <div class="flow-step">
+    <div class="flow-num">1</div>
+    <div class="flow-content">
+      <strong>Kullanıcı "Send" tıklar</strong>
+      <p style="font-size: 14px;">Alıcı adresi ve miktar girer. Token seçimi yapılır (CLR).</p>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">2</div>
+    <div class="flow-content">
+      <strong>Passkey Doğrulama</strong>
+      <p style="font-size: 14px;">navigator.credentials.get() ile biyometrik doğrulama. Kullanıcı Face ID / parmak izi onaylar.</p>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">3</div>
+    <div class="flow-content">
+      <strong>Deploy Server'a İstek</strong>
+      <p style="font-size: 14px;">POST /api/transfer — {from, to, amount, tokenAddress} gönderilir.</p>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">4</div>
+    <div class="flow-content">
+      <strong>Transfer Altyapısı Kurulumu (ilk seferde)</strong>
+      <p style="font-size: 14px;">setupTransferInfra(): Schnorr admin hesabı + CLR token deploy edilir. Bilgiler .celari-admin.json'a kaydedilir.</p>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">5</div>
+    <div class="flow-content">
+      <strong>Mint (Testnet yaklaşımı)</strong>
+      <p style="font-size: 14px;">Admin hesabı mint_to_public(alıcı, miktar) çağırır. SponsoredFPC ile gas ücretsiz.</p>
+    </div>
+  </div>
+
+  <div class="flow-step">
+    <div class="flow-num">6</div>
+    <div class="flow-content">
+      <strong>Blockchain Onayı</strong>
+      <p style="font-size: 14px;">PXE proof üretir (~20-30sn), tx gönderilir, ~30sn blok onayı. Extension'a sonuç döner.</p>
+    </div>
+  </div>
+
+  <div class="warning-box">
+    <strong>Neden mint_to_public?</strong><br/>
+    Testnet'te server kullanıcının private key'ine sahip değil → transfer_in_public çağıramaz.
+    Pragmatik çözüm: admin hesabı ile alıcıya mint. Mainnet'te kullanıcı kendi wallet'ından imza atacak.
+  </div>
+</div>
+
+<!-- ==================== SLIDE 9: SECURITY ==================== -->
+<div class="slide">
+  <span class="slide-number">09</span>
+  <h2>Güvenlik Mimarisi</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">✅ Mevcut Önlemler</div>
+      <ul style="font-size: 14px;">
+        <li><strong>WebAuthn/Passkey:</strong> Private key cihazdan çıkmaz</li>
+        <li><strong>CORS whitelist:</strong> Sadece extension origin</li>
+        <li><strong>XSS koruması:</strong> textContent ile DOM injection engeli</li>
+        <li><strong>Input validation:</strong> Adres ve miktar doğrulama</li>
+        <li><strong>CSP:</strong> script-src 'self' + wasm-unsafe-eval</li>
+        <li><strong>Sender doğrulama:</strong> chrome.runtime.id kontrolü</li>
+        <li><strong>Self-hosted fonts:</strong> Google Fonts yerine lokal</li>
+        <li><strong>Biyometrik onay:</strong> Her transferde Face ID</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">⚠️ Testnet Kısıtlamaları</div>
+      <ul style="font-size: 14px;">
+        <li><strong>Server-side key:</strong> Deploy server P256 üretiyor</li>
+        <li><strong>Mint yaklaşımı:</strong> Transfer yerine admin mint</li>
+        <li><strong>Tek admin:</strong> Tüm mint yetkileri tek hesapta</li>
+        <li><strong>HTTP:</strong> TLS/HTTPS henüz yok</li>
+        <li><strong>Rate limiting:</strong> Henüz uygulanmadı</li>
+        <li><strong>secretKey açık:</strong> Deploy result'ta secretKey</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Kriptografik Akış</h3>
+  <div class="mermaid">
+graph LR
+    A["P256 Key Pair<br/>(Secure Enclave)"] -->|"Public Key"| B["Noir Contract<br/>(on-chain)"]
+    A -->|"Private Key"| C["WebAuthn Sign<br/>(cihazda)"]
+    C -->|"P256 Signature"| D["Auth Witness<br/>(64 bytes)"]
+    D -->|"ZK Circuit"| E["ecdsa_secp256r1<br/>verify_signature"]
+    E -->|"✅"| F["Transaction OK"]
+  </div>
+</div>
+
+<!-- ==================== SLIDE 10: MAINNET ROADMAP ==================== -->
+<div class="slide">
+  <span class="slide-number">10</span>
+  <h2>Mainnet'e Geçiş Stratejisi</h2>
+
+  <h3>Faz 1: Altyapı Değişiklikleri</h3>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Deploy Server Dönüşümü</div>
+      <ul style="font-size: 14px;">
+        <li><strong>Kullanıcı key pair'i:</strong> Extension'dan gelen public key ile deploy</li>
+        <li><strong>Auth witness:</strong> WebAuthn imzasını extension'dan al, server'a gönder</li>
+        <li><strong>Gerçek transfer:</strong> mint yerine transfer_in_public / transfer_in_private</li>
+        <li><strong>Ücret yönetimi:</strong> SponsoredFPC yerine kullanıcının kendi gas ödemesi</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-title">Extension Değişiklikleri</div>
+      <ul style="font-size: 14px;">
+        <li><strong>Client-side PXE:</strong> Proof üretimi extension'da (WASM)</li>
+        <li><strong>Gerçek imzalama:</strong> Her tx için WebAuthn assertion</li>
+        <li><strong>Fee estimation:</strong> Gas maliyet hesaplama + onay</li>
+        <li><strong>Multi-token:</strong> Birden fazla token desteği</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>Faz 2: Güvenlik Sertleştirme</h3>
+  <table>
+    <tr><th>Konu</th><th>Testnet</th><th>Mainnet</th></tr>
+    <tr class="comparison-row">
+      <td>Key Generation</td>
+      <td>Server-side P256</td>
+      <td>Client-side WebAuthn (Secure Enclave)</td>
+    </tr>
+    <tr class="comparison-row">
+      <td>İmzalama</td>
+      <td>CLI private key</td>
+      <td>WebAuthn assertion (biyometrik)</td>
+    </tr>
+    <tr class="comparison-row">
+      <td>Transfer</td>
+      <td>Admin mint_to_public</td>
+      <td>Kullanıcı transfer_in_public / transfer_in_private</td>
+    </tr>
+    <tr class="comparison-row">
+      <td>Gas</td>
+      <td>SponsoredFPC (ücretsiz)</td>
+      <td>Kullanıcı öder (ETH/token)</td>
+    </tr>
+    <tr class="comparison-row">
+      <td>Deploy Server</td>
+      <td>Merkezi (tek VPS)</td>
+      <td>Decentralized relay veya tamamen client-side</td>
+    </tr>
+    <tr class="comparison-row">
+      <td>İletişim</td>
+      <td>HTTP</td>
+      <td>HTTPS + API key + rate limiting</td>
+    </tr>
+  </table>
+
+  <h3>Faz 3: Merkezi Olmayan Mimari</h3>
+  <div class="mermaid">
+graph TB
+    subgraph "Mainnet Hedef Mimari"
+        A["Extension<br/>(Client-side PXE + WASM)"]
+        B["WebAuthn<br/>(Secure Enclave)"]
+        C["Aztec Node<br/>(Public RPC)"]
+        D["Ethereum Mainnet<br/>(L1 Settlement)"]
+    end
+
+    A -->|"Biyometrik imza"| B
+    B -->|"P256 signature"| A
+    A -->|"Proof + Tx"| C
+    C -->|"ZK Rollup"| D
+
+    style A fill:#1a1a26,stroke:#c9a84c,color:#e8e8f0
+    style B fill:#1a1a26,stroke:#22c55e,color:#e8e8f0
+    style C fill:#1a1a26,stroke:#3b82f6,color:#e8e8f0
+    style D fill:#1a1a26,stroke:#6366f1,color:#e8e8f0
+  </div>
+
+  <div class="success-box">
+    <strong>Anahtar Avantaj:</strong> Client-side PXE ile deploy server'a ihtiyaç kalmaz.
+    Extension, WASM üzerinden doğrudan proof üretip Aztec node'a gönderir.
+    Tamamen merkezi olmayan, censorship-resistant mimari.
+  </div>
+</div>
+
+<!-- ==================== SLIDE 11: MAINNET CHECKLIST ==================== -->
+<div class="slide">
+  <span class="slide-number">11</span>
+  <h2>Mainnet Checklist</h2>
+
+  <h3>Kritik (Lansman Öncesi)</h3>
+  <div style="margin: 16px 0;">
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--red);">!</div>
+      <div class="flow-content">
+        <strong>Client-side proof generation</strong>
+        <p style="font-size: 14px;">PXE'yi extension içinde WASM olarak çalıştır. Deploy server bağımlılığını kaldır.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--red);">!</div>
+      <div class="flow-content">
+        <strong>Gerçek WebAuthn imzalama</strong>
+        <p style="font-size: 14px;">Her transaction için kullanıcının kendi passkey'i ile imza. Server-side key üretimi kaldırılmalı.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--red);">!</div>
+      <div class="flow-content">
+        <strong>Gas fee yönetimi</strong>
+        <p style="font-size: 14px;">SponsoredFPC mainnet'te olmayacak. Kullanıcı gas ödeme akışı (fee estimation + onay).</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--red);">!</div>
+      <div class="flow-content">
+        <strong>Güvenlik denetimi (Audit)</strong>
+        <p style="font-size: 14px;">Noir kontrat + extension kodu profesyonel güvenlik denetiminden geçmeli.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Önemli (Lansmanda veya Hemen Sonra)</h3>
+  <div style="margin: 16px 0;">
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--gold); color: #000;">2</div>
+      <div class="flow-content">
+        <strong>Multi-token desteği</strong>
+        <p style="font-size: 14px;">Token registry, otomatik keşif, bakiye gösterimi.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--gold); color: #000;">2</div>
+      <div class="flow-content">
+        <strong>Private transfer desteği</strong>
+        <p style="font-size: 14px;">transfer_in_private ile tam gizlilik. Aztec'in ana avantajı.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--gold); color: #000;">2</div>
+      <div class="flow-content">
+        <strong>dApp entegrasyonu</strong>
+        <p style="font-size: 14px;">window.celari provider'ı tam fonksiyonel hale getir. DeFi protokolleri ile etkileşim.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--gold); color: #000;">2</div>
+      <div class="flow-content">
+        <strong>Account recovery</strong>
+        <p style="font-size: 14px;">Passkey kaybolursa kurtarma mekanizması (social recovery / backup key).</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>İyileştirme (Lansman Sonrası)</h3>
+  <div style="margin: 16px 0;">
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--green);">3</div>
+      <div class="flow-content">
+        <strong>Firefox + Safari desteği</strong>
+        <p style="font-size: 14px;">Cross-browser extension. WebExtension API uyumluluğu.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--green);">3</div>
+      <div class="flow-content">
+        <strong>Mobile uygulama</strong>
+        <p style="font-size: 14px;">React Native / Flutter ile iOS + Android. Native passkey desteği.</p>
+      </div>
+    </div>
+    <div class="flow-step">
+      <div class="flow-num" style="background: var(--green);">3</div>
+      <div class="flow-content">
+        <strong>Fiat on/off ramp</strong>
+        <p style="font-size: 14px;">MoonPay / Transak entegrasyonu. Kredi kartı ile token alım.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== SLIDE 12: TECH STACK SUMMARY ==================== -->
+<div class="slide">
+  <span class="slide-number">12</span>
+  <h2>Teknoloji Yığını</h2>
+
+  <div class="grid-3">
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">📜</div>
+      <div class="card-title">Smart Contract</div>
+      <p style="font-size: 14px;"><strong>Noir</strong> (Aztec ZK DSL)</p>
+      <p style="font-size: 12px; color: var(--text-dim);">P256 ECDSA doğrulama<br/>ZK proof ile gizlilik</p>
+    </div>
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">🖥️</div>
+      <div class="card-title">Extension</div>
+      <p style="font-size: 14px;"><strong>Vanilla JS</strong> + esbuild</p>
+      <p style="font-size: 12px; color: var(--text-dim);">Chrome MV3<br/>WebAuthn API</p>
+    </div>
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">⚙️</div>
+      <div class="card-title">Backend</div>
+      <p style="font-size: 14px;"><strong>Node.js</strong> + TypeScript</p>
+      <p style="font-size: 12px; color: var(--text-dim);">Aztec SDK / PXE<br/>PM2 process mgr</p>
+    </div>
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">🔗</div>
+      <div class="card-title">L2 Network</div>
+      <p style="font-size: 14px;"><strong>Aztec</strong> (ZK Rollup)</p>
+      <p style="font-size: 12px; color: var(--text-dim);">Sepolia testnet<br/>Privacy by default</p>
+    </div>
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">⛓️</div>
+      <div class="card-title">L1 Settlement</div>
+      <p style="font-size: 14px;"><strong>Ethereum</strong> (Sepolia)</p>
+      <p style="font-size: 12px; color: var(--text-dim);">ZK proof verification<br/>Rollup contract</p>
+    </div>
+    <div class="card" style="text-align: center;">
+      <div style="font-size: 32px; margin-bottom: 8px;">🔐</div>
+      <div class="card-title">Auth</div>
+      <p style="font-size: 14px;"><strong>WebAuthn</strong> / FIDO2</p>
+      <p style="font-size: 12px; color: var(--text-dim);">P256 (secp256r1)<br/>Biometric auth</p>
+    </div>
+  </div>
+
+  <h3>Deployment Bilgileri (Testnet)</h3>
+  <table>
+    <tr><th>Bileşen</th><th>Adres / Lokasyon</th></tr>
+    <tr><td>Deploy Server</td><td><code>http://139.99.149.238:3456</code></td></tr>
+    <tr><td>Aztec RPC</td><td><code>https://rpc.testnet.aztec-labs.com</code></td></tr>
+    <tr><td>SponsoredFPC</td><td><code>0x1586f476995be97f07eb...</code></td></tr>
+    <tr><td>CLR Token</td><td><code>0x2397661193436307c99d...</code></td></tr>
+    <tr><td>Admin Account</td><td><code>0x2051fcdb771a6082e5b2...</code></td></tr>
+    <tr><td>L1 Chain</td><td>Ethereum Sepolia (Chain ID: 11155111)</td></tr>
+  </table>
+</div>
+
+<!-- ==================== FOOTER ==================== -->
+<footer>
+  <div style="font-size: 24px; margin-bottom: 8px;">◇</div>
+  <p><strong>Celari Wallet</strong> — Privacy-first super wallet for Aztec Network</p>
+  <p style="margin-top: 8px;">Bu doküman tarayıcıda açılabilir veya PDF olarak kaydedilebilir (Ctrl/Cmd + P)</p>
+  <p style="margin-top: 4px;">Şubat 2026 · v0.3.0</p>
+</footer>
+
+<script>
+  mermaid.initialize({
+    startOnLoad: true,
+    theme: 'dark',
+    themeVariables: {
+      primaryColor: '#1a1a26',
+      primaryBorderColor: '#c9a84c',
+      primaryTextColor: '#e8e8f0',
+      lineColor: '#c9a84c',
+      secondaryColor: '#2a2a3a',
+      tertiaryColor: '#12121a',
+      fontFamily: 'Inter, sans-serif',
+      fontSize: '13px',
+      noteBkgColor: '#1a1a26',
+      noteTextColor: '#e8e8f0',
+      noteBorderColor: '#c9a84c',
+      actorBkg: '#1a1a26',
+      actorBorder: '#c9a84c',
+      actorTextColor: '#e8e8f0',
+      signalColor: '#c9a84c',
+      signalTextColor: '#e8e8f0',
+    }
+  });
+</script>
+</body>
+</html>

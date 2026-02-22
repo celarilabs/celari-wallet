@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Celari PXE Engine</title>
+</head>
+<body>
+  <script>
+    function logToSwift(level, msg) {
+      try {
+        window.webkit.messageHandlers.jsConsole.postMessage(
+          JSON.stringify({level: level, msg: msg})
+        );
+      } catch(e) {}
+    }
+
+    logToSwift('log', '[pxe-bridge.html] HTML loaded');
+    window._pxeLoadStart = Date.now();
+
+    window.addEventListener('error', function(e) {
+      logToSwift('error', '[pxe-bridge.html] Error: ' + e.message + ' at ' + (e.filename || 'unknown') + ':' + (e.lineno || '?'));
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var reason = e.reason ? (e.reason.message || e.reason.stack || String(e.reason)) : 'unknown';
+      logToSwift('error', '[pxe-bridge.html] Unhandled Promise: ' + String(reason).substring(0, 500));
+    });
+
+    // Status checks at 5s, 15s, 60s
+    function statusCheck() {
+      var count = window._messageHandlers ? window._messageHandlers.length : 0;
+      var elapsed = Date.now() - window._pxeLoadStart;
+      logToSwift('log', '[pxe-bridge.html] Status@' + elapsed + 'ms: handlers=' + count + ', _receiveFromSwift=' + (typeof window._receiveFromSwift));
+    }
+    setTimeout(statusCheck, 5000);
+    setTimeout(statusCheck, 15000);
+    setTimeout(statusCheck, 60000);
+  </script>
+
+  <!-- ESM format: type="module" preserves import.meta.url for WASM loading -->
+  <script type="module" src="offscreen.js"></script>
+</body>
+</html>

@@ -1,0 +1,61 @@
+{
+  "name": "celari-wallet",
+  "version": "0.3.0",
+  "description": "Celari Wallet — Faz 1: Passkey Auth + Browser Extension",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "compile": "cd contracts/celari_passkey_account && aztec compile",
+    "codegen": "aztec codegen contracts/celari_passkey_account/target -o src/artifacts --nr",
+    "build": "yarn compile && yarn codegen",
+    "deploy:passkey": "npx tsx scripts/deploy_passkey_account.ts",
+    "deploy:server": "npx tsx scripts/deploy-server.ts",
+    "deploy:token": "npx tsx scripts/deploy-token.ts",
+    "test": "NODE_NO_WARNINGS=1 npx jest --forceExit",
+    "test:txe": "cd contracts/celari_passkey_account && aztec test",
+    "ext:dev": "node extension/build.mjs --dev && cd extension && npx web-ext run --source-dir dist",
+    "ext:build": "node extension/build.mjs && cd extension && npx web-ext build --source-dir dist",
+    "icons": "node scripts/generate_icons.js",
+    "start:sandbox": "aztec start --sandbox",
+    "clean": "rm -rf store/ contracts/*/target/ src/artifacts/",
+    "lint": "eslint src/ scripts/ --ext .ts",
+    "lint:fix": "eslint src/ scripts/ --ext .ts --fix",
+    "format": "prettier --write 'src/**/*.ts' 'scripts/**/*.ts'",
+    "format:check": "prettier --check 'src/**/*.ts' 'scripts/**/*.ts'",
+    "typecheck": "tsc --noEmit",
+    "sdk:build": "cd sdk && npx tsc"
+  },
+  "dependencies": {
+    "@aztec/accounts": "3.0.2",
+    "@aztec/aztec.js": "3.0.2",
+    "@aztec/l1-artifacts": "3.0.2",
+    "@aztec/noir-contracts.js": "3.0.2",
+    "@aztec/stdlib": "3.0.2",
+    "@aztec/test-wallet": "3.0.2",
+    "@aztec/wallet-sdk": "3.0.2",
+    "@walletconnect/sign-client": "^2.17.0"
+  },
+  "devDependencies": {
+    "@jest/globals": "^29.7.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "buffer": "^6.0.3",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.0.0",
+    "events": "^3.3.0",
+    "jest": "^29.7.0",
+    "path-browserify": "^1.0.1",
+    "prettier": "^3.2.0",
+    "sharp": "^0.34.5",
+    "stream-browserify": "^3.0.0",
+    "ts-jest": "^29.1.0",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.0",
+    "util": "^0.12.5",
+    "web-ext": "^8.0.0"
+  },
+  "engines": {
+    "node": ">=22.15.0"
+  }
+}

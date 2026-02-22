@@ -1,0 +1,50 @@
+node_modules/
+codegenCache.json
+dist/
+store/
+target/
+src/artifacts/
+web-ext-artifacts/
+
+# CRITICAL: Files below contain private keys - NEVER remove from .gitignore
+# Sensitive keys and deploy info
+.celari-keys.json
+.celari-passkey-account.json
+.celari-token.json
+.zkpay-keys.json
+.zkpay-passkey-account.json
+.env
+.env.*
+
+# Build artifacts
+extension/dist/
+contracts/*/target/
+sdk/dist/
+*.log
+
+# iOS
+ios/**/build/
+ios/**/xcuserdata/
+ios/**/DerivedData/
+ios/CelariWallet/CelariWallet/Resources/offscreen.js
+
+# Website (separate repo)
+website/
+
+# Reports & internal docs
+WALLET_REPORT.md
+WALLET_REPORT.pdf
+celari-wallet-status-report.pdf
+GRANT_PROPOSAL.md
+GRANT_PROPOSAL.pdf
+PLAN.md
+ios/**/PXE_BRIDGE_PROGRESS_REPORT.md
+
+# Claude
+.claude/
+
+# OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

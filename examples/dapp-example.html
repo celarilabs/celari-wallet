@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Celari dApp Örneği</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0a0e17;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .container { max-width: 520px; width: 100%; }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #7c3aed, #22d3ee);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .subtitle { color: #64748b; font-size: 14px; margin-bottom: 24px; }
+    .card {
+      background: #111827;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .card h2 { font-size: 14px; font-weight: 700; margin-bottom: 12px; color: #a78bfa; }
+    .status {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .status.disconnected { background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #ef4444; }
+    .status.connected { background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2); color: #10b981; }
+    .status.loading { background: rgba(124, 58, 237, 0.1); border: 1px solid rgba(124, 58, 237, 0.2); color: #a78bfa; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot.red { background: #ef4444; }
+    .dot.green { background: #10b981; animation: pulse 2s infinite; }
+    .dot.purple { background: #7c3aed; animation: spin 1s linear infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    button {
+      width: 100%;
+      padding: 12px;
+      border-radius: 10px;
+      border: none;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 8px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: white;
+    }
+    .btn-primary:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: default; transform: none; }
+    .btn-secondary {
+      background: #1a2332;
+      border: 1px solid #1e293b;
+      color: #e2e8f0;
+    }
+    .btn-secondary:hover { border-color: #7c3aed; }
+    input {
+      width: 100%;
+      padding: 10px 12px;
+      background: #1a2332;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 13px;
+      outline: none;
+      margin-bottom: 10px;
+    }
+    input:focus { border-color: #7c3aed; }
+    label { display: block; font-size: 11px; color: #64748b; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .address { font-family: monospace; font-size: 12px; color: #22d3ee; word-break: break-all; padding: 8px; background: #0a0e17; border-radius: 6px; }
+    .log { font-family: monospace; font-size: 11px; color: #94a3b8; padding: 8px; background: #0a0e17; border-radius: 6px; max-height: 200px; overflow-y: auto; white-space: pre-wrap; }
+    .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; }
+    .tag.private { background: rgba(16, 185, 129, 0.1); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Celari dApp Örneği</h1>
+    <p class="subtitle">window.celari API ile Aztec private transfer</p>
+
+    <!-- Step 1: Connection Status -->
+    <div class="card">
+      <h2>1. Cüzdan Bağlantısı</h2>
+      <div id="status" class="status disconnected">
+        <div class="dot red"></div>
+        Celari Wallet bulunamadı
+      </div>
+      <div style="margin-top: 12px">
+        <button id="btn-connect" class="btn-primary" disabled>Bağlan</button>
+      </div>
+      <div id="address-section" style="display:none; margin-top: 12px">
+        <label>Bağlı adres</label>
+        <div id="address" class="address"></div>
+      </div>
+    </div>
+
+    <!-- Step 2: Private Transfer -->
+    <div class="card">
+      <h2>2. Private Transfer <span class="tag private">🔒 Private</span></h2>
+      <label>Alıcı adresi</label>
+      <input id="input-to" type="text" placeholder="0x..." />
+      <label>Miktar (zkUSD)</label>
+      <input id="input-amount" type="text" placeholder="100" />
+      <button id="btn-send" class="btn-primary" disabled>
+        👆 Passkey ile İmzala ve Gönder
+      </button>
+      <div id="send-result" style="display:none; margin-top: 8px" class="status connected"></div>
+    </div>
+
+    <!-- Step 3: Auth Witness -->
+    <div class="card">
+      <h2>3. Token Approval (AuthWit)</h2>
+      <p style="font-size: 12px; color: #64748b; margin-bottom: 12px">
+        Başka bir contract'a token harcama izni ver — passkey ile imzala.
+      </p>
+      <label>Spender adresi</label>
+      <input id="input-spender" type="text" placeholder="0x..." />
+      <label>Message hash</label>
+      <input id="input-hash" type="text" placeholder="0x..." />
+      <button id="btn-authwit" class="btn-secondary" disabled>Auth Witness Oluştur</button>
+    </div>
+
+    <!-- Log -->
+    <div class="card">
+      <h2>📋 Event Log</h2>
+      <div id="log" class="log">Bekleniyor...\n</div>
+    </div>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const log = (msg) => { $("log").textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`; $("log").scrollTop = $("log").scrollHeight; };
+
+    // ─── Check for Celari Wallet ──────────────────────────
+
+    function checkProvider() {
+      if (window.celari) {
+        log("✅ Celari Wallet bulundu (v" + window.celari.version + ")");
+        $("status").className = "status connected";
+        $("status").innerHTML = '<div class="dot green"></div> Celari Wallet algılandı';
+        $("btn-connect").disabled = false;
+        return true;
+      }
+      return false;
+    }
+
+    // Check immediately and also listen for late injection
+    if (!checkProvider()) {
+      window.addEventListener("celari#initialized", checkProvider);
+      // Also poll for a few seconds
+      let attempts = 0;
+      const poll = setInterval(() => {
+        if (checkProvider() || ++attempts > 20) clearInterval(poll);
+      }, 500);
+    }
+
+    // ─── Connect ─────────────────────────────────────────
+
+    $("btn-connect").addEventListener("click", async () => {
+      $("btn-connect").disabled = true;
+      $("btn-connect").textContent = "Bağlanıyor...";
+      log("🔌 Bağlantı isteği gönderildi...");
+
+      try {
+        const result = await window.celari.connect();
+        log("✅ Bağlantı başarılı: " + result.address);
+
+        $("address").textContent = result.address;
+        $("address-section").style.display = "block";
+        $("btn-connect").textContent = "✅ Bağlı";
+        $("btn-send").disabled = false;
+        $("btn-authwit").disabled = false;
+      } catch (e) {
+        log("❌ Bağlantı hatası: " + e.message);
+        $("btn-connect").disabled = false;
+        $("btn-connect").textContent = "Bağlan";
+      }
+    });
+
+    // ─── Send Private Transfer ───────────────────────────
+
+    $("btn-send").addEventListener("click", async () => {
+      const to = $("input-to").value.trim();
+      const amount = $("input-amount").value.trim();
+
+      if (!to || !amount) {
+        log("⚠️ Adres ve miktar gerekli");
+        return;
+      }
+
+      $("btn-send").disabled = true;
+      $("btn-send").textContent = "👆 Passkey doğrulanıyor...";
+      log(`📤 Transfer: ${amount} zkUSD → ${to.slice(0, 10)}...`);
+
+      try {
+        const result = await window.celari.sendTransaction({
+          to,
+          amount: BigInt(amount),
+          token: "zkUSD",
+        });
+
+        log("✅ Transfer başarılı! TX: " + (result.txHash || "private"));
+        $("send-result").style.display = "block";
+        $("send-result").innerHTML = '<div class="dot green"></div> Transfer tamamlandı (private) 🔒';
+      } catch (e) {
+        log("❌ Transfer hatası: " + e.message);
+      }
+
+      $("btn-send").disabled = false;
+      $("btn-send").textContent = "👆 Passkey ile İmzala ve Gönder";
+    });
+
+    // ─── Auth Witness ────────────────────────────────────
+
+    $("btn-authwit").addEventListener("click", async () => {
+      const hash = $("input-hash").value.trim();
+      if (!hash) { log("⚠️ Message hash gerekli"); return; }
+
+      $("btn-authwit").disabled = true;
+      log("🔐 Auth witness oluşturuluyor...");
+
+      try {
+        const result = await window.celari.createAuthWit(hash);
+        log("✅ Auth witness oluşturuldu");
+      } catch (e) {
+        log("❌ AuthWit hatası: " + e.message);
+      }
+
+      $("btn-authwit").disabled = false;
+    });
+
+    // ─── Listen for Events ───────────────────────────────
+
+    if (window.celari) {
+      window.celari.on("accountChanged", (data) => {
+        log("🔄 Hesap değişti: " + data.address);
+      });
+
+      window.celari.on("networkChanged", (data) => {
+        log("🔄 Ağ değişti: " + data.network);
+      });
+    }
+
+    log("dApp yüklendi. Celari Wallet extension'ı bekleniyor...");
+  </script>
+</body>
+</html>

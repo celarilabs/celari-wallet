@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "Celari Wallet",
+  "version": "0.5.0",
+  "description": "Privacy-first super wallet for Aztec Network. Passkey authentication, private transfers, crypto card spending.",
+  "homepage_url": "https://github.com/Kubudak90/celari-wallet",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png"
+    },
+    "default_title": "Celari Wallet"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "permissions": [
+    "storage",
+    "activeTab",
+    "notifications",
+    "alarms",
+    "offscreen",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://*.aztec-labs.com/*",
+    "wss://relay.walletconnect.com/*",
+    "wss://relay.walletconnect.org/*"
+  ],
+  "optional_host_permissions": [
+    "http://localhost:8080/*",
+    "http://localhost:3456/*",
+    "http://139.99.149.238:3456/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["src/inpage.js", "wasm/*"],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
+  }
+}
