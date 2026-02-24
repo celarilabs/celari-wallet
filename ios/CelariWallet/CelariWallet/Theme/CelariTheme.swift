@@ -56,11 +56,11 @@ enum CelariTypography {
     static let monoLabel = Font.custom("IBMPlexMono-Medium", size: 8)
     static let monoTiny = Font.custom("IBMPlexMono-Regular", size: 7)
 
-    static let accent = Font.custom("TenorSans-Regular", size: 12)
+    static let accent = Font.custom("TenorSans-Regular", size: 12, relativeTo: .body)
     static let accentItalic = Font.custom("TenorSans-Regular", size: 12).italic()
 
-    static let body = Font.custom("Outfit-Regular", size: 13)
-    static let bodySmall = Font.custom("Outfit-Regular", size: 11)
+    static let body = Font.custom("Outfit-Regular", size: 13, relativeTo: .body)
+    static let bodySmall = Font.custom("Outfit-Regular", size: 11, relativeTo: .footnote)
 
     static let balance = Font.custom("PoiretOne-Regular", size: 34)
 }

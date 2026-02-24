@@ -29,6 +29,7 @@ struct ToastOverlay: View {
             .padding(.bottom, 32)
         }
         .transition(.move(edge: .bottom).combined(with: .opacity))
+        .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .animation(.easeInOut(duration: 0.25), value: toast.message)
     }
 }
