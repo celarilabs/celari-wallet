@@ -14,10 +14,28 @@ class PXEBridge: NSObject {
 
     private var webView: WKWebView?
     private var pendingCallbacks: [String: CheckedContinuation<[String: Any], Error>] = [:]
+    private let callbackLock = NSLock()
     private var storageData: [String: Any] = [:]
 
     override init() {
         super.init()
+    }
+
+    // MARK: - Thread-safe Continuation Access
+
+    private func storeContinuation(_ id: String, _ continuation: CheckedContinuation<[String: Any], Error>) {
+        callbackLock.lock()
+        pendingCallbacks[id] = continuation
+        callbackLock.unlock()
+    }
+
+    /// Remove and return the continuation for the given ID, or nil if already consumed.
+    /// This ensures each CheckedContinuation is resumed at most once.
+    private func removeContinuation(_ id: String) -> CheckedContinuation<[String: Any], Error>? {
+        callbackLock.lock()
+        let cb = pendingCallbacks.removeValue(forKey: id)
+        callbackLock.unlock()
+        return cb
     }
 
     // MARK: - Setup
@@ -32,7 +50,7 @@ class PXEBridge: NSObject {
         pxeLog.notice("[PXEBridge] setupWebView() creating WKWebView...")
 
         let config = WKWebViewConfiguration()
-        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        config.setURLSchemeHandler(CelariSchemeHandler(), forURLScheme: "celari")
 
         let controller = WKUserContentController()
         controller.add(self, name: "pxeBridge")
@@ -96,10 +114,8 @@ class PXEBridge: NSObject {
             window.addSubview(wv)
         }
 
-        // Load PXE bridge HTML
-        if let htmlURL = Bundle.main.url(forResource: "pxe-bridge", withExtension: "html") {
-            wv.loadFileURL(htmlURL, allowingReadAccessTo: htmlURL.deletingLastPathComponent())
-        }
+        // Load PXE bridge HTML via custom scheme
+        wv.load(URLRequest(url: URL(string: "celari://pxe-bridge.html")!))
     }
 
     // MARK: - Send Message to JavaScript
@@ -131,25 +147,28 @@ class PXEBridge: NSObject {
         }
 
         return try await withCheckedThrowingContinuation { continuation in
-            pendingCallbacks[messageId] = continuation
+            storeContinuation(messageId, continuation)
 
-            let js = "window._receiveFromSwift('\(jsonString.replacingOccurrences(of: "'", with: "\\'"))')"
-            pxeLog.notice("[PXEBridge] evaluateJavaScript for \(type, privacy: .public), msgId: \(messageId, privacy: .public), jsonLen: \(jsonString.count), timeout: \(timeoutSeconds)s")
+            pxeLog.notice("[PXEBridge] callAsyncJavaScript for \(type, privacy: .public), msgId: \(messageId, privacy: .public), jsonLen: \(jsonString.count), timeout: \(timeoutSeconds)s")
             Task { @MainActor in
-                webView.evaluateJavaScript(js) { result, error in
-                    if let error {
-                        pxeLog.error("[PXEBridge] evaluateJavaScript ERROR for \(type, privacy: .public): \(error.localizedDescription, privacy: .public)")
-                        self.pendingCallbacks.removeValue(forKey: messageId)
-                        continuation.resume(throwing: error)
-                    } else {
-                        pxeLog.notice("[PXEBridge] evaluateJavaScript OK for \(type, privacy: .public)")
+                do {
+                    _ = try await webView.callAsyncJavaScript(
+                        "window._receiveFromSwift(msg)",
+                        arguments: ["msg": jsonString],
+                        contentWorld: .page
+                    )
+                    pxeLog.notice("[PXEBridge] callAsyncJavaScript OK for \(type, privacy: .public)")
+                } catch {
+                    pxeLog.error("[PXEBridge] callAsyncJavaScript ERROR for \(type, privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    if let cb = self.removeContinuation(messageId) {
+                        cb.resume(throwing: error)
                     }
                 }
             }
 
             Task {
                 try? await Task.sleep(for: .seconds(timeoutSeconds))
-                if let cb = self.pendingCallbacks.removeValue(forKey: messageId) {
+                if let cb = self.removeContinuation(messageId) {
                     cb.resume(throwing: PXEError.timeout)
                 }
             }
@@ -305,7 +324,7 @@ extension PXEBridge: WKScriptMessageHandler {
             }
             // Response from JS to a pending Swift call
             if let messageId = json["_messageId"] as? String,
-               let continuation = pendingCallbacks.removeValue(forKey: messageId) {
+               let continuation = removeContinuation(messageId) {
                 if let error = json["error"] as? String {
                     continuation.resume(throwing: PXEError.jsError(error))
                 } else {
@@ -354,8 +373,16 @@ extension PXEBridge: WKScriptMessageHandler {
                 }
                 deliverStorageCallback(callbackId, result: [:])
             }
+        case "remove":
+            if let keys = json["keys"] as? [String] {
+                for key in keys {
+                    UserDefaults.standard.removeObject(forKey: key)
+                }
+                deliverStorageCallback(callbackId, result: [:])
+            }
         default:
-            break
+            pxeLog.warning("[PXEBridge] Unknown storage action: \(action, privacy: .public)")
+            deliverStorageCallback(callbackId, result: [:])
         }
     }
 
@@ -363,9 +390,12 @@ extension PXEBridge: WKScriptMessageHandler {
         guard let webView else { return }
         if let jsonData = try? JSONSerialization.data(withJSONObject: result),
            let jsonStr = String(data: jsonData, encoding: .utf8) {
-            let js = "window._deliverStorageCallback('\(callbackId)', '\(jsonStr.replacingOccurrences(of: "'", with: "\\'"))')"
             Task { @MainActor in
-                webView.evaluateJavaScript(js, completionHandler: nil)
+                try? await webView.callAsyncJavaScript(
+                    "window._deliverStorageCallback(cbId, resultJson)",
+                    arguments: ["cbId": callbackId, "resultJson": jsonStr],
+                    contentWorld: .page
+                )
             }
         }
     }

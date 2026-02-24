@@ -35,23 +35,28 @@
   // NOTE: Buffer is provided by a separate buffer-polyfill.js (feross/buffer)
   // injected by PXEBridge.swift as a WKUserScript after this shim.
 
-  // --- fetch() polyfill for file:// URLs (needed by WASM loaders) ---
-  // WKWebView's fetch() doesn't work with file:// URLs.
-  // Override fetch to use XMLHttpRequest for local files.
+  // --- fetch() polyfill for celari:// and file:// URLs ---
+  // WKURLSchemeHandler handles celari:// for <script src> and navigation,
+  // but fetch() needs XMLHttpRequest to route through the scheme handler.
   var _origFetch = window.fetch;
   window.fetch = function(input, init) {
     var url = (input instanceof Request) ? input.url : String(input);
-    if (url.startsWith('file://')) {
+    if (url.startsWith('celari://') || url.startsWith('file://')) {
       return new Promise(function(resolve, reject) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
         xhr.onload = function() {
           if (xhr.status === 0 || (xhr.status >= 200 && xhr.status < 300)) {
+            var mime = 'application/octet-stream';
+            if (url.endsWith('.wasm')) mime = 'application/wasm';
+            else if (url.endsWith('.js')) mime = 'application/javascript';
+            else if (url.endsWith('.json')) mime = 'application/json';
+            else if (url.endsWith('.html')) mime = 'text/html';
             resolve(new Response(xhr.response, {
               status: 200,
               statusText: 'OK',
-              headers: { 'Content-Type': 'application/wasm' }
+              headers: { 'Content-Type': mime }
             }));
           } else {
             reject(new Error('XHR failed: ' + xhr.status + ' for ' + url));
@@ -65,7 +70,7 @@
     }
     return _origFetch.apply(this, arguments);
   };
-  console.log('[PXE-Shim] fetch() polyfill for file:// URLs installed');
+  console.log('[PXE-Shim] fetch() polyfill for celari:// and file:// URLs installed');
 
   // --- Worker polyfill (WKWebView does not support Web Workers) ---
   // Aztec SDK uses workers for zk-proof computation.
@@ -144,9 +149,24 @@
 
   window._pendingStorageCallbacks = {};
 
+  // Storage callback timeout: 10 seconds (4.16 audit fix)
+  var STORAGE_CALLBACK_TIMEOUT_MS = 10000;
+
+  function registerStorageCallback(id, callback) {
+    var entry = { _cb: callback };
+    entry._timeout = setTimeout(function() {
+      if (window._pendingStorageCallbacks[id]) {
+        console.warn('[PXE-Shim] Storage callback timeout for ' + id);
+        delete window._pendingStorageCallbacks[id];
+        if (callback) callback({});
+      }
+    }, STORAGE_CALLBACK_TIMEOUT_MS);
+    window._pendingStorageCallbacks[id] = entry;
+  }
+
   function storageGet(area, keys, callback) {
     var id = 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    window._pendingStorageCallbacks[id] = callback;
+    registerStorageCallback(id, callback);
     var keysArray = typeof keys === 'string' ? [keys] : (Array.isArray(keys) ? keys : Object.keys(keys));
     window.webkit.messageHandlers.pxeStorage.postMessage(JSON.stringify({
       action: 'get',
@@ -158,7 +178,7 @@
 
   function storageSet(area, data, callback) {
     var id = 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    if (callback) window._pendingStorageCallbacks[id] = callback;
+    if (callback) registerStorageCallback(id, callback);
     window.webkit.messageHandlers.pxeStorage.postMessage(JSON.stringify({
       action: 'set',
       area: area,
@@ -169,7 +189,7 @@
 
   function storageRemove(area, keys, callback) {
     var id = 'sc_' + Date.now() + '_' + Math.random().toString(36).slice(2);
-    if (callback) window._pendingStorageCallbacks[id] = callback;
+    if (callback) registerStorageCallback(id, callback);
     var keysArray = typeof keys === 'string' ? [keys] : keys;
     window.webkit.messageHandlers.pxeStorage.postMessage(JSON.stringify({
       action: 'remove',
@@ -180,8 +200,10 @@
   }
 
   window._deliverStorageCallback = function(callbackId, resultJson) {
-    var cb = window._pendingStorageCallbacks[callbackId];
-    if (cb) {
+    var entry = window._pendingStorageCallbacks[callbackId];
+    if (entry) {
+      if (entry._timeout) clearTimeout(entry._timeout);
+      var cb = entry._cb || entry;
       delete window._pendingStorageCallbacks[callbackId];
       try {
         cb(JSON.parse(resultJson));
@@ -197,10 +219,26 @@
     remove: function(keys, cb) { storageRemove('local', keys, cb); }
   };
 
+  // chrome.storage.session is in-memory only — should NOT persist across restarts (4.10 audit fix)
+  var _sessionStore = {};
   window.chrome.storage.session = {
-    get: function(keys, cb) { storageGet('session', keys, cb); },
-    set: function(data, cb) { storageSet('session', data, cb); },
-    remove: function(keys, cb) { storageRemove('session', keys, cb); }
+    get: function(keys, cb) {
+      var keysArray = typeof keys === 'string' ? [keys] : (Array.isArray(keys) ? keys : Object.keys(keys));
+      var result = {};
+      for (var i = 0; i < keysArray.length; i++) {
+        if (_sessionStore.hasOwnProperty(keysArray[i])) result[keysArray[i]] = _sessionStore[keysArray[i]];
+      }
+      if (cb) cb(result);
+    },
+    set: function(data, cb) {
+      for (var k in data) { if (data.hasOwnProperty(k)) _sessionStore[k] = data[k]; }
+      if (cb) cb();
+    },
+    remove: function(keys, cb) {
+      var keysArray = typeof keys === 'string' ? [keys] : keys;
+      for (var i = 0; i < keysArray.length; i++) { delete _sessionStore[keysArray[i]]; }
+      if (cb) cb();
+    }
   };
 
   // --- chrome.alarms shim (no-op) ---
@@ -220,10 +258,10 @@
 
   // Called by Swift to send a PXE message to the offscreen.js handler
   window._receiveFromSwift = function(msgJson) {
-    console.log('[PXE-Shim] _receiveFromSwift called, type=' + (JSON.parse(msgJson).type || '?'));
     var msg;
     try {
       msg = JSON.parse(msgJson);
+      console.log('[PXE-Shim] _receiveFromSwift called, type=' + (msg.type || '?'));
     } catch (parseErr) {
       console.error('[PXE-Shim] JSON parse error:', parseErr.message);
       return;

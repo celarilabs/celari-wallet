@@ -21,6 +21,7 @@
 		5F010F5D3FE91B99EACA3215 /* pxe-bridge-shim.js in Resources */ = {isa = PBXBuildFile; fileRef = EC1E195A46FCEA880E968FE4 /* pxe-bridge-shim.js */; };
 		61165897687CCE8123B4E8A7 /* ViewModifiers.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C66B15782D135803DEE3CE3 /* ViewModifiers.swift */; };
 		62CDA2B93A41C9A5A409F342 /* FormField.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C3BF118DFC5BC9FA624ADAD /* FormField.swift */; };
+		65E5919D225654B0540A808D /* PXEPersistenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 18811ADED3FE44AE7D373AED /* PXEPersistenceManager.swift */; };
 		65E9D7FCA7072B90DACD323A /* HeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D09F8CF8C2562642853CF01 /* HeaderView.swift */; };
 		6AC41DDF030D7C888F543EFB /* CelariWalletTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E25BBCC267683D41B285EA8 /* CelariWalletTests.swift */; };
 		6E95A9EC3BA25CC55BD0ACFF /* ToastOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFD60E694DFF2E5BF1950391 /* ToastOverlay.swift */; };
@@ -35,6 +36,7 @@
 		8DD792B0750FA582ECE266DD /* AddAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 06BF18DF2C8CDE17C2A5A58F /* AddAccountView.swift */; };
 		8FE8795CEAA9C0EF29D77908 /* SubHeaderView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E508B419A1BD6F16BFF3AE4F /* SubHeaderView.swift */; };
 		90FE2D116CBBE4BDD0FDB592 /* WalletConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3E1C577B408C2373DBB9D843 /* WalletConnectView.swift */; };
+		953FF29CD2BB29B33826D6AD /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1396E290058D8949811DC50E /* Assets.xcassets */; };
 		98769E955876B5F761684DD0 /* NftDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4FF242E882D42654BEF6186 /* NftDetailView.swift */; };
 		99092D4D119C3346489F0A05 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E7EAEA6EA7D61DEAC781B7B /* RootView.swift */; };
 		99D3FA8EA9FBC337CFED6381 /* BalanceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24BFD6FA390EE61BA286096D /* BalanceCardView.swift */; };
@@ -50,10 +52,10 @@
 		D02B8B65BF8620082D45237D /* BackupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B248145B91FBFD0CE187D16A /* BackupView.swift */; };
 		D1C527F2341B62D64CABC998 /* WCSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83A8761765263B7A2A95C38C /* WCSession.swift */; };
 		D4605C96DC0FFDAC125E56DE /* PXEBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A97830F777A6D421F81569 /* PXEBridge.swift */; };
-		E1A2B3C4D5E6F708192A3B4C /* PXEPersistenceManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* PXEPersistenceManager.swift */; };
 		D4E1DA9ED1FD37CE5B97A0EA /* Activity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 334BF7C78DDB3D132AC9479A /* Activity.swift */; };
 		E82BEF0725CC078F9951E1D7 /* noirc_abi_wasm_bg.wasm in Resources */ = {isa = PBXBuildFile; fileRef = 62F8879152F0EFAE6E717295 /* noirc_abi_wasm_bg.wasm */; };
 		EFBBC0EE46F50754ED41D22F /* Token.swift in Sources */ = {isa = PBXBuildFile; fileRef = B958307684C9EA050AEB8F39 /* Token.swift */; };
+		F0B7563D372B3E11B8DDC034 /* CelariSchemeHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EA57B5CA4A0F1727D85ED8B /* CelariSchemeHandler.swift */; };
 		F4E784CD1B52BF5EA4AB56F9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C1CBA9C764D311F85FA09C9C /* SettingsView.swift */; };
 		F83C6569DE0BEFA40FADC1DD /* WalletStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = BF6C29C20C338FFEA7D20585 /* WalletStore.swift */; };
 /* End PBXBuildFile section */
@@ -73,8 +75,10 @@
 		054E3C4C49AECABAABFBDDED /* CelariWallet.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = CelariWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		06BF18DF2C8CDE17C2A5A58F /* AddAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddAccountView.swift; sourceTree = "<group>"; };
 		1270E128990B45A17AAAB82A /* CelariWallet.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = CelariWallet.entitlements; sourceTree = "<group>"; };
+		1396E290058D8949811DC50E /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		143E94CC6E61E3F0FCC524BD /* DiamondIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiamondIcon.swift; sourceTree = "<group>"; };
 		181B9ECA525D063C0B2593F5 /* CelariWalletTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = CelariWalletTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		18811ADED3FE44AE7D373AED /* PXEPersistenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PXEPersistenceManager.swift; sourceTree = "<group>"; };
 		2180226AD3DBFBDE0A1F15F6 /* WcApproveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WcApproveView.swift; sourceTree = "<group>"; };
 		24BFD6FA390EE61BA286096D /* BalanceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BalanceCardView.swift; sourceTree = "<group>"; };
 		2EE66FBCC262142B654803F1 /* KeychainManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainManager.swift; sourceTree = "<group>"; };
@@ -87,6 +91,7 @@
 		4715BF247B5203305AAC88D9 /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
 		4C3BF118DFC5BC9FA624ADAD /* FormField.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormField.swift; sourceTree = "<group>"; };
 		4E25BBCC267683D41B285EA8 /* CelariWalletTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelariWalletTests.swift; sourceTree = "<group>"; };
+		5EA57B5CA4A0F1727D85ED8B /* CelariSchemeHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CelariSchemeHandler.swift; sourceTree = "<group>"; };
 		62F8879152F0EFAE6E717295 /* noirc_abi_wasm_bg.wasm */ = {isa = PBXFileReference; path = noirc_abi_wasm_bg.wasm; sourceTree = "<group>"; };
 		6F706ACEF49E33ED0EE7D922 /* offscreen.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = offscreen.js; sourceTree = "<group>"; };
 		7835AE78C2D0A99B82A61A0C /* RestoreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RestoreView.swift; sourceTree = "<group>"; };
@@ -100,7 +105,6 @@
 		9C59B18FD85AF0D07B004DA9 /* ActionButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActionButton.swift; sourceTree = "<group>"; };
 		9C66B15782D135803DEE3CE3 /* ViewModifiers.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewModifiers.swift; sourceTree = "<group>"; };
 		AFD60E694DFF2E5BF1950391 /* ToastOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToastOverlay.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F60718293A4B5C /* PXEPersistenceManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PXEPersistenceManager.swift; sourceTree = "<group>"; };
 		B1A97830F777A6D421F81569 /* PXEBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PXEBridge.swift; sourceTree = "<group>"; };
 		B248145B91FBFD0CE187D16A /* BackupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackupView.swift; sourceTree = "<group>"; };
 		B958307684C9EA050AEB8F39 /* Token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Token.swift; sourceTree = "<group>"; };
@@ -207,11 +211,12 @@
 			isa = PBXGroup;
 			children = (
 				4543D8D84D4AFA61222D7CF0 /* BackupManager.swift */,
+				5EA57B5CA4A0F1727D85ED8B /* CelariSchemeHandler.swift */,
 				2EE66FBCC262142B654803F1 /* KeychainManager.swift */,
 				BC89992F2DB9F93999222FB2 /* NetworkManager.swift */,
 				04886BCB08EC5A0AB8B7F879 /* PasskeyManager.swift */,
 				B1A97830F777A6D421F81569 /* PXEBridge.swift */,
-				A1B2C3D4E5F60718293A4B5C /* PXEPersistenceManager.swift */,
+				18811ADED3FE44AE7D373AED /* PXEPersistenceManager.swift */,
 				BF6C29C20C338FFEA7D20585 /* WalletStore.swift */,
 			);
 			path = Core;
@@ -241,6 +246,7 @@
 		BB14BDB52F53B0A9EDC17222 /* CelariWallet */ = {
 			isa = PBXGroup;
 			children = (
+				1396E290058D8949811DC50E /* Assets.xcassets */,
 				1270E128990B45A17AAAB82A /* CelariWallet.entitlements */,
 				FE2F33FBECD1AAA692E269C5 /* CelariWalletApp.swift */,
 				AF0EC40BEBF9D882FCEF5631 /* Components */,
@@ -343,6 +349,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				953FF29CD2BB29B33826D6AD /* Assets.xcassets in Resources */,
 				A3E4F987F4D5CBC6169FA96D /* acvm_js_bg.wasm in Resources */,
 				A05FF2B47D9473500DA5985A /* buffer-polyfill.js in Resources */,
 				E82BEF0725CC078F9951E1D7 /* noirc_abi_wasm_bg.wasm in Resources */,
@@ -370,6 +377,7 @@
 				0A47F13692D67BC7DFA9616C /* BackupManager.swift in Sources */,
 				D02B8B65BF8620082D45237D /* BackupView.swift in Sources */,
 				99D3FA8EA9FBC337CFED6381 /* BalanceCardView.swift in Sources */,
+				F0B7563D372B3E11B8DDC034 /* CelariSchemeHandler.swift in Sources */,
 				495CCD2ED1859C0DA767192E /* CelariTheme.swift in Sources */,
 				183A8CB42CEBADCE1D459611 /* CelariWalletApp.swift in Sources */,
 				753E745F80B127F60DAAE980 /* ConfirmTxView.swift in Sources */,
@@ -385,7 +393,7 @@
 				7CE7C70F52C2A91B7B49F9DE /* NftListView.swift in Sources */,
 				496D8E2DC07241B09C360E6D /* OnboardingView.swift in Sources */,
 				D4605C96DC0FFDAC125E56DE /* PXEBridge.swift in Sources */,
-				E1A2B3C4D5E6F708192A3B4C /* PXEPersistenceManager.swift in Sources */,
+				65E5919D225654B0540A808D /* PXEPersistenceManager.swift in Sources */,
 				19631A237627508C0F8D13A3 /* PasskeyManager.swift in Sources */,
 				ADFDCC5C7B6A6A5C18293821 /* ReceiveView.swift in Sources */,
 				4F0A15A47E199A5BB7B9B415 /* RestoreView.swift in Sources */,
@@ -490,6 +498,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
@@ -524,10 +533,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = CelariWallet/CelariWallet.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Celari;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -544,10 +554,11 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = CelariWallet/CelariWallet.entitlements;
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CURRENT_PROJECT_VERSION = 8;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Celari;
+				INFOPLIST_KEY_CFBundleIconName = AppIcon;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -615,6 +626,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
