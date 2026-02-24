@@ -17,8 +17,20 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
             fileName = String(url.path(percentEncoded: false).dropFirst()) // remove leading /
         }
 
-        let name = (fileName as NSString).deletingPathExtension
-        let ext = (fileName as NSString).pathExtension
+        // Resolve the actual file name to look up in the bundle.
+        // WASM imports use relative URLs: new URL('file.wasm', import.meta.url)
+        // With import.meta.url = "celari://offscreen.js", this resolves to
+        // "celari://offscreen.js/file.wasm" where host="offscreen.js", path="/file.wasm".
+        // All bundle resources are flat, so fall back to the last path component.
+        let resolvedName: String
+        if fileName.contains("/") {
+            resolvedName = (fileName as NSString).lastPathComponent
+        } else {
+            resolvedName = fileName
+        }
+
+        let name = (resolvedName as NSString).deletingPathExtension
+        let ext = (resolvedName as NSString).pathExtension
 
         // Try gzip-compressed variant first (e.g., offscreen.js.gz for offscreen.js)
         var data: Data
@@ -31,17 +43,18 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
                   let fileData = try? Data(contentsOf: fileURL) {
             data = fileData
         } else {
-            schemeLog.error("[SchemeHandler] File not found: \(fileName, privacy: .public)")
+            schemeLog.error("[SchemeHandler] File not found: \(fileName, privacy: .public) (resolved: \(resolvedName, privacy: .public))")
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
 
         let mimeType = Self.mimeType(for: ext)
 
-        // Use HTTPURLResponse for gzip Content-Encoding header
+        // CORS headers required for <script type="module"> on custom schemes
         var headers: [String: String] = [
             "Content-Type": mimeType,
-            "Content-Length": "\(data.count)"
+            "Content-Length": "\(data.count)",
+            "Access-Control-Allow-Origin": "*",
         ]
         if isGzipped {
             headers["Content-Encoding"] = "gzip"
@@ -55,7 +68,8 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
         )!
 
         let label = isGzipped ? "gzip" : "raw"
-        schemeLog.notice("[SchemeHandler] Serving \(fileName, privacy: .public) (\(data.count) bytes, \(label, privacy: .public))")
+        let served = fileName.contains("/") ? "\(fileName) → \(resolvedName)" : fileName
+        schemeLog.notice("[SchemeHandler] Serving \(served, privacy: .public) (\(data.count) bytes, \(label, privacy: .public))")
         urlSchemeTask.didReceive(response as URLResponse)
         urlSchemeTask.didReceive(data)
         urlSchemeTask.didFinish()
