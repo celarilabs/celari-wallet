@@ -28,6 +28,7 @@ struct DashboardView: View {
                     // Action buttons
                     HStack(spacing: 0) {
                         ActionButton(icon: "arrow.up.right", label: "Send") {
+                            store.sendForm = SendForm() // Reset form on navigation (4.13 audit fix)
                             store.screen = .send
                         }
                         ActionButton(icon: "arrow.down.left", label: "Receive") {
@@ -37,6 +38,7 @@ struct DashboardView: View {
                             requestFaucet()
                         }
                         ActionButton(icon: "shield", label: "Shield") {
+                            store.sendForm = SendForm() // Reset form on navigation (4.13 audit fix)
                             store.sendForm.transferType = .shield
                             store.screen = .send
                         }
@@ -68,13 +70,24 @@ struct DashboardView: View {
 
                         Spacer()
 
-                        Button {
-                            store.screen = .addToken
-                        } label: {
-                            Text("+")
-                                .font(CelariTypography.mono)
-                                .foregroundColor(CelariColors.textDim)
-                                .padding(.horizontal, 8)
+                        if activeTab == .tokens {
+                            Button {
+                                store.screen = .addToken
+                            } label: {
+                                Text("+")
+                                    .font(CelariTypography.mono)
+                                    .foregroundColor(CelariColors.textDim)
+                                    .padding(.horizontal, 8)
+                            }
+                        } else if activeTab == .nfts {
+                            Button {
+                                store.screen = .addNftContract
+                            } label: {
+                                Text("+")
+                                    .font(CelariTypography.mono)
+                                    .foregroundColor(CelariColors.textDim)
+                                    .padding(.horizontal, 8)
+                            }
                         }
                     }
                     .padding(.horizontal, 16)
@@ -107,7 +120,20 @@ struct DashboardView: View {
         store.showToast("Requesting faucet tokens...")
         Task {
             do {
-                _ = try await pxeBridge.faucet(address: account.address)
+                let result = try await pxeBridge.faucet(address: account.address)
+
+                // Auto-register CLR token so balances can be queried
+                if let tokenAddress = result["tokenAddress"] as? String,
+                   let symbol = result["symbol"] as? String,
+                   !tokenAddress.isEmpty {
+                    store.registerTokenIfNeeded(
+                        contractAddress: tokenAddress,
+                        name: symbol == "CLR" ? "Celari Token" : symbol,
+                        symbol: symbol,
+                        decimals: 18
+                    )
+                }
+
                 store.showToast("Faucet tokens received!")
                 await store.fetchBalances()
             } catch {

@@ -623,6 +623,17 @@ class WalletStore {
         saveAccounts()
     }
 
+    // MARK: - Token Registration
+
+    /// Registers a token as a custom token if it's not already tracked.
+    /// Called after faucet mint so that fetchBalancesViaPXE can query its balance.
+    func registerTokenIfNeeded(contractAddress: String, name: String, symbol: String, decimals: Int) {
+        guard !customTokens.contains(where: { $0.contractAddress == contractAddress }) else { return }
+        customTokens.append(CustomToken(contractAddress: contractAddress, name: name, symbol: symbol, decimals: decimals))
+        saveCustomTokens()
+        walletLog.notice("[WalletStore] Auto-registered token: \(symbol, privacy: .public) at \(contractAddress.prefix(20), privacy: .public)...")
+    }
+
     // MARK: - Storage
 
     private let accountsKey = "celari_accounts"
