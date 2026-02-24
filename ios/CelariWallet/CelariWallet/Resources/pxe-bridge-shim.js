@@ -213,13 +213,24 @@
     }
   };
 
+  // Chrome Manifest V3 API: returns Promise when no callback given (4.17 fix)
   window.chrome.storage.local = {
-    get: function(keys, cb) { storageGet('local', keys, cb); },
-    set: function(data, cb) { storageSet('local', data, cb); },
-    remove: function(keys, cb) { storageRemove('local', keys, cb); }
+    get: function(keys, cb) {
+      if (cb) { storageGet('local', keys, cb); return; }
+      return new Promise(function(resolve) { storageGet('local', keys, resolve); });
+    },
+    set: function(data, cb) {
+      if (cb) { storageSet('local', data, cb); return; }
+      return new Promise(function(resolve) { storageSet('local', data, resolve); });
+    },
+    remove: function(keys, cb) {
+      if (cb) { storageRemove('local', keys, cb); return; }
+      return new Promise(function(resolve) { storageRemove('local', keys, resolve); });
+    }
   };
 
   // chrome.storage.session is in-memory only — should NOT persist across restarts (4.10 audit fix)
+  // Returns Promise when no callback given (4.17 fix)
   var _sessionStore = {};
   window.chrome.storage.session = {
     get: function(keys, cb) {
@@ -228,16 +239,19 @@
       for (var i = 0; i < keysArray.length; i++) {
         if (_sessionStore.hasOwnProperty(keysArray[i])) result[keysArray[i]] = _sessionStore[keysArray[i]];
       }
-      if (cb) cb(result);
+      if (cb) { cb(result); return; }
+      return Promise.resolve(result);
     },
     set: function(data, cb) {
       for (var k in data) { if (data.hasOwnProperty(k)) _sessionStore[k] = data[k]; }
-      if (cb) cb();
+      if (cb) { cb(); return; }
+      return Promise.resolve();
     },
     remove: function(keys, cb) {
       var keysArray = typeof keys === 'string' ? [keys] : keys;
       for (var i = 0; i < keysArray.length; i++) { delete _sessionStore[keysArray[i]]; }
-      if (cb) cb();
+      if (cb) { cb(); return; }
+      return Promise.resolve();
     }
   };
 
