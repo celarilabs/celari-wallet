@@ -217,12 +217,24 @@ class MemoryAztecStore {
 // --- Browser-compatible SponsoredFPC setup ---
 
 async function setupSponsoredFPC(walletInstance) {
+  console.log("[PXE] SponsoredFPC: Step 2a -- importing SponsoredFPCContract artifact...");
+  const t2a = Date.now();
   const { SponsoredFPCContract } = await import("@aztec/noir-contracts.js/SponsoredFPC");
+  console.log(`[PXE] SponsoredFPC: Step 2a OK (${Date.now() - t2a}ms)`);
+
+  console.log("[PXE] SponsoredFPC: Step 2b -- getContractInstanceFromInstantiationParams (WASM)...");
+  const t2b = Date.now();
   const fpcInstance = await getContractInstanceFromInstantiationParams(
     SponsoredFPCContract.artifact,
     { salt: new Fr(0) },
   );
+  console.log(`[PXE] SponsoredFPC: Step 2b OK (${Date.now() - t2b}ms)`);
+
+  console.log("[PXE] SponsoredFPC: Step 2c -- registerContract...");
+  const t2c = Date.now();
   await walletInstance.registerContract(fpcInstance, SponsoredFPCContract.artifact);
+  console.log(`[PXE] SponsoredFPC: Step 2c OK (${Date.now() - t2c}ms)`);
+
   return {
     instance: fpcInstance,
     paymentMethod: new SponsoredFeePaymentMethod(fpcInstance.address),
@@ -237,6 +249,7 @@ let kvStore = null;       // MemoryAztecStore reference (iOS only — for snapsh
 let pxeReady = false;
 let initError = null;
 let initInProgress = false; // Guard: prevent concurrent messages during PXE_INIT
+let initStep = "";          // Current init step description for UI progress
 
 // Multi-account support: address → { manager, wallet (AccountWithSecretKey) }
 const accountWallets = new Map();
@@ -360,6 +373,7 @@ class BrowserCelariPasskeyAccountContract extends DefaultAccountContract {
 // --- PXE Initialization ---
 
 async function initPXE(nodeUrl) {
+  initStep = "Connecting to Aztec node...";
   console.log(`[PXE] Connecting to ${nodeUrl}...`);
   const node = createAztecNodeClient(nodeUrl);
   nodeClient = node; // Store for wallet-sdk protocol
@@ -376,6 +390,7 @@ async function initPXE(nodeUrl) {
   const { createPXE, getPXEConfig } = await import("@aztec/pxe/client/lazy");
   const pxeConfig = Object.assign(getPXEConfig(), { proverEnabled });
 
+  initStep = "Fetching L1 contract addresses...";
   console.log("[PXE] Step A: getL1ContractAddresses (network)...");
   const t_l1 = Date.now();
   const l1Contracts = await node.getL1ContractAddresses();
@@ -383,6 +398,7 @@ async function initPXE(nodeUrl) {
 
   const configWithContracts = { ...pxeConfig, l1Contracts };
 
+  initStep = "Creating local database...";
   console.log("[PXE] Step B: Creating KV store...");
   const t_store = Date.now();
   let store;
@@ -402,7 +418,7 @@ async function initPXE(nodeUrl) {
     const { createStore } = await import("@aztec/kv-store/indexeddb");
     store = await Promise.race([
       createStore("pxe_data", configWithContracts),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("createStore timed out after 30s")), 30000)),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("createStore timed out after 60s")), 60000)),
     ]);
     console.log("[PXE] Step B: IndexedDB store OK (" + (Date.now() - t_store) + "ms)");
   }
@@ -419,6 +435,7 @@ async function initPXE(nodeUrl) {
     console.log("[PXE] Step C0: Barretenberg singleton ready (" + (Date.now() - t_bb) + "ms)");
   }
 
+  initStep = "Loading WASM prover engine...";
   console.log("[PXE] Step C: WASMSimulator + Prover...");
   const t_sim = Date.now();
   const { WASMSimulator } = await import("@aztec/simulator/client");
@@ -427,6 +444,7 @@ async function initPXE(nodeUrl) {
   const prover = new BBLazyPrivateKernelProver(simulator);
   console.log("[PXE] Step C: OK (" + (Date.now() - t_sim) + "ms)");
 
+  initStep = "Loading protocol contracts...";
   console.log("[PXE] Step D: LazyProtocolContractsProvider...");
   const t_pcp = Date.now();
   const { LazyProtocolContractsProvider } = await import("@aztec/protocol-contracts/providers/lazy");
@@ -437,11 +455,12 @@ async function initPXE(nodeUrl) {
   // for the same IndexedDB store, causing "delete range without transaction" errors on WKWebView.
   // TestWallet.create() below creates its own PXE using the shared store, simulator, and prover.
 
+  initStep = "Starting PXE wallet engine...";
   console.log("[PXE] Step E: Creating TestWallet (single PXE with shared store)...");
   const t_pxe = Date.now();
   wallet = await Promise.race([
     TestWallet.create(node, pxeConfig, { store, simulator, prover }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error("TestWallet.create timed out after 120s")), 120000)),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("TestWallet.create timed out after 4 min")), 240000)),
   ]);
   console.log("[PXE] Step E: OK (" + (Date.now() - t_pxe) + "ms) — TestWallet ready");
 
@@ -739,55 +758,75 @@ async function deployAccountClientSide(data) {
     privateKeyPkcs8,
   );
 
-  // Step 1: Create account via standard SDK flow (handles registerContract + account registration)
-  console.log("[PXE] Step 1: wallet.createAccount()...");
+  // Step 1: Create account
+  console.log("[PXE] Deploy Step 1: wallet.createAccount()...");
   const t1 = Date.now();
-  const manager = await wallet.createAccount({
-    secret: secretKey,
-    salt,
-    contract: accountContract,
-  });
+  let manager;
+  try {
+    manager = await Promise.race([
+      wallet.createAccount({ secret: secretKey, salt, contract: accountContract }),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("createAccount timed out after 3 min")), 180000)),
+    ]);
+    console.log(`[PXE] Deploy Step 1: OK (${Date.now() - t1}ms) -- address: ${manager.address.toString().slice(0, 22)}...`);
+  } catch (e) {
+    console.error(`[PXE] Deploy Step 1: FAILED (${Date.now() - t1}ms) -- ${e.message}`);
+    throw e;
+  }
+
   const address = manager.address;
-  console.log(`[PXE] Step 1: createAccount OK (${Date.now() - t1}ms) — address: ${address.toString().slice(0, 22)}...`);
 
-  // Step 2: Setup SponsoredFPC for gas-free deploy
-  console.log("[PXE] Step 2: SponsoredFPC setup...");
+  // Step 2: SponsoredFPC
+  console.log("[PXE] Deploy Step 2: setupSponsoredFPC...");
   const t2 = Date.now();
-  const { paymentMethod } = await setupSponsoredFPC(wallet);
-  fpcSetupDone = true;
-  console.log(`[PXE] Step 2: SponsoredFPC OK (${Date.now() - t2}ms)`);
+  let paymentMethod;
+  try {
+    const fpc = await Promise.race([
+      setupSponsoredFPC(wallet),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("setupSponsoredFPC timed out after 3 min")), 180000)),
+    ]);
+    paymentMethod = fpc.paymentMethod;
+    console.log(`[PXE] Deploy Step 2: OK (${Date.now() - t2}ms)`);
+  } catch (e) {
+    console.error(`[PXE] Deploy Step 2: FAILED (${Date.now() - t2}ms) -- ${e.message}`);
+    throw e;
+  }
 
-  // Step 3: Deploy account contract on-chain
-  // Key insight: from=AztecAddress.ZERO normally triggers "self-payment" in DeployAccountMethod,
-  // routing fee through the account's own entrypoint (which requires P-256 auth).
-  // Since we use SponsoredFPC (external payer), we override to use the external fee path instead.
-  // This avoids calling is_valid_impl during deploy — P-256 auth is only needed for post-deploy TXs.
-  console.log("[PXE] Step 3: Deploy...");
+  // Step 3: getDeployMethod
+  console.log("[PXE] Deploy Step 3: getDeployMethod...");
   const t3 = Date.now();
   const deployMethod = await manager.getDeployMethod();
-  console.log(`[PXE] Step 3a: getDeployMethod OK (${Date.now() - t3}ms)`);
+  console.log(`[PXE] Deploy Step 3: OK (${Date.now() - t3}ms)`);
 
   // Patch: force external fee path (deployer=undefined) while keeping from=ZERO for SignerlessAccount
   const _origConvert = deployMethod.convertDeployOptionsToRequestOptions.bind(deployMethod);
   deployMethod.convertDeployOptionsToRequestOptions = (opts) => {
     const r = _origConvert(opts);
-    r.deployer = undefined; // External fee path — SponsoredFPC handles fee, not account entrypoint
+    r.deployer = undefined;
     return r;
   };
 
+  // Step 4: send
+  console.log("[PXE] Deploy Step 4: deployMethod.send()...");
+  const t4 = Date.now();
   const sentTx = deployMethod.send({
     from: AztecAddress.ZERO,
     fee: { paymentMethod },
   });
-  console.log(`[PXE] Step 3b: send() OK (${Date.now() - t3}ms)`);
+  console.log(`[PXE] Deploy Step 4: send() returned (${Date.now() - t4}ms)`);
 
+  // Step 5: getTxHash
+  console.log("[PXE] Deploy Step 5: getTxHash...");
+  const t5 = Date.now();
   const txHash = await sentTx.getTxHash();
-  console.log(`[PXE] Step 3c: txHash: ${txHash.toString().slice(0, 22)}... — waiting...`);
+  console.log(`[PXE] Deploy Step 5: txHash: ${txHash.toString().slice(0, 22)}... (${Date.now() - t5}ms)`);
 
-  const receipt = await sentTx.wait({ timeout: 420_000 }); // 7 min — proof + block on iOS
-  console.log(`[PXE] Step 3d: Deployed! Block ${receipt.blockNumber} (${Date.now() - t3}ms total)`);
+  // Step 6: wait for inclusion
+  console.log("[PXE] Deploy Step 6: waiting for block inclusion (timeout 7 min)...");
+  const t6 = Date.now();
+  const receipt = await sentTx.wait({ timeout: 420_000 });
+  console.log(`[PXE] Deploy Step 6: Deployed! Block ${receipt.blockNumber} (${Date.now() - t6}ms total)`);
 
-  // Store in multi-account map — Proxy so getAddress() returns CelariPasskey address
+  // Store in multi-account map
   const addrStr = address.toString();
   const acctWallet = new Proxy(wallet, {
     get(target, prop) {
@@ -1071,9 +1110,14 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
         case "PXE_INIT":
           if (initInProgress) return { error: "PXE_INIT already in progress" };
           initInProgress = true;
+          initError = null;
           try {
             const result = await initPXE(msg.nodeUrl);
             return result;
+          } catch (e) {
+            initError = e?.message || String(e);
+            console.error("[PXE] PXE_INIT failed:", initError);
+            throw e;
           } finally {
             initInProgress = false;
           }
@@ -1086,6 +1130,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             accountCount: accountWallets.size,
             activeAddress,
             initializing: initInProgress,
+            initStep,
           };
 
         case "PXE_REGISTER_ACCOUNT":
@@ -1385,4 +1430,8 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   return true; // Keep message channel open for async response
 });
 
+// Signal to background that offscreen listener is active
+chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }, () => {
+  void chrome.runtime.lastError; // Suppress if background not listening yet
+});
 console.log("[PXE] Offscreen document loaded — waiting for PXE_INIT");
