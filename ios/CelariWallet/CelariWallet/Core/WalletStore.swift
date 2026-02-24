@@ -113,6 +113,7 @@ enum NetworkPreset: String, CaseIterable {
 
 // MARK: - Wallet Store
 
+@MainActor
 @Observable
 class WalletStore {
     // Navigation
@@ -247,25 +248,7 @@ class WalletStore {
                     }
                 }
 
-                // Auto-deploy first pending account for testing
-                if let account = self.activeAccount, !account.deployed, account.type == .passkey {
-                    walletLog.notice("[WalletStore] Auto-deploying pending account: \(account.label, privacy: .public)")
-                    await self.deployActiveAccount(pxeBridge: pxeBridge)
-
-                    #if targetEnvironment(simulator)
-                    // Auto-trigger faucet after deploy (headless testing)
-                    if let deployed = self.activeAccount, deployed.deployed {
-                        walletLog.notice("[WalletStore] Auto-faucet — requesting tokens for \(deployed.address.prefix(20), privacy: .public)...")
-                        do {
-                            _ = try await pxeBridge.faucet(address: deployed.address)
-                            walletLog.notice("[WalletStore] Auto-faucet completed!")
-                            await self.fetchBalances()
-                        } catch {
-                            walletLog.error("[WalletStore] Auto-faucet failed: \(error.localizedDescription, privacy: .public)")
-                        }
-                    }
-                    #endif
-                } else if let account = self.activeAccount, account.deployed {
+                if let account = self.activeAccount, account.deployed {
                     // Account already deployed — re-register with PXE (in-memory store is fresh)
                     walletLog.notice("[WalletStore] PXE ready, account deployed — re-registering with PXE")
                     await self.reRegisterAccount(pxeBridge: pxeBridge, account: account)
@@ -495,15 +478,7 @@ class WalletStore {
         showToast("Passkey wallet created!")
         walletLog.notice("[WalletStore] Account creation complete — navigated to dashboard")
 
-        // Auto-deploy if PXE is already initialized
-        if pxeInitialized {
-            walletLog.notice("[WalletStore] PXE ready — auto-deploying new account...")
-            await deployActiveAccount(pxeBridge: pxeBridge)
-        } else if !pxeBridge.isReady {
-            walletLog.notice("[WalletStore] PXE not ready yet — initialize() will send PXE_INIT when ready")
-        } else {
-            walletLog.notice("[WalletStore] PXE bridge ready but PXE not initialized — deploy will be triggered after PXE_INIT")
-        }
+        walletLog.notice("[WalletStore] Account ready — user can deploy from dashboard")
     }
 
     // MARK: - P-256 Key Generation (CryptoKit)
@@ -559,16 +534,16 @@ class WalletStore {
 
             // Update account with the real address and keys from deployment
             if let deployedAddress = result["address"] as? String {
+                let oldPendingAddress = accounts[activeAccountIndex].address
                 accounts[activeAccountIndex].address = deployedAddress
                 accounts[activeAccountIndex].deployed = true
-                accounts[activeAccountIndex].secretKey = result["secretKey"] as? String
                 accounts[activeAccountIndex].salt = result["salt"] as? String
                 accounts[activeAccountIndex].txHash = result["txHash"] as? String
                 accounts[activeAccountIndex].blockNumber = result["blockNumber"] as? String
                 accounts[activeAccountIndex].network = nodeUrl
                 saveAccounts()
 
-                // Save secretKey to Keychain
+                // Save secretKey to Keychain under the real address
                 if let sk = result["secretKey"] as? String, let s = result["salt"] as? String {
                     try? KeychainManager.saveAccountKeys(
                         address: deployedAddress,
@@ -576,6 +551,12 @@ class WalletStore {
                         privateKeyPkcs8: pkcs8,
                         salt: s
                     )
+                }
+
+                // Clean up orphaned Keychain entry from pending address (3.9 audit fix)
+                if oldPendingAddress != deployedAddress {
+                    try? KeychainManager.deleteAccountKeys(address: oldPendingAddress)
+                    walletLog.notice("[WalletStore] Cleaned up pending Keychain entry: \(oldPendingAddress.prefix(20), privacy: .public)")
                 }
 
                 walletLog.notice("[WalletStore] Account deployed — address: \(deployedAddress.prefix(20), privacy: .public)..., txHash: \(result["txHash"] as? String ?? "nil", privacy: .public)")
@@ -603,7 +584,7 @@ class WalletStore {
     private func reRegisterAccount(pxeBridge: PXEBridge, account: Account) async {
         do {
             let keys = try KeychainManager.loadAccountKeys(address: account.address)
-            guard let secretKey = keys.secretKey ?? account.secretKey,
+            guard let secretKey = keys.secretKey,
                   let salt = keys.salt ?? account.salt,
                   let pkcs8 = keys.privateKey else {
                 walletLog.warning("[WalletStore] Re-register skipped — missing keys for \(account.label, privacy: .public)")
@@ -710,7 +691,7 @@ class WalletStore {
 
     func showToast(_ message: String, type: Toast.ToastType = .success) {
         toast = Toast(message: message, type: type)
-        Task { @MainActor in
+        Task {
             try? await Task.sleep(for: .seconds(3))
             if toast?.message == message {
                 toast = nil
