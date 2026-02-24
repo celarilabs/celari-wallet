@@ -20,28 +20,43 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
         let name = (fileName as NSString).deletingPathExtension
         let ext = (fileName as NSString).pathExtension
 
-        guard let fileURL = Bundle.main.url(forResource: name, withExtension: ext) else {
+        // Try gzip-compressed variant first (e.g., offscreen.js.gz for offscreen.js)
+        var data: Data
+        var isGzipped = false
+        if let gzURL = Bundle.main.url(forResource: name, withExtension: ext + ".gz"),
+           let gzData = try? Data(contentsOf: gzURL) {
+            data = gzData
+            isGzipped = true
+        } else if let fileURL = Bundle.main.url(forResource: name, withExtension: ext),
+                  let fileData = try? Data(contentsOf: fileURL) {
+            data = fileData
+        } else {
             schemeLog.error("[SchemeHandler] File not found: \(fileName, privacy: .public)")
             urlSchemeTask.didFailWithError(URLError(.fileDoesNotExist))
             return
         }
 
-        guard let data = try? Data(contentsOf: fileURL) else {
-            schemeLog.error("[SchemeHandler] Cannot read: \(fileName, privacy: .public)")
-            urlSchemeTask.didFailWithError(URLError(.cannotOpenFile))
-            return
+        let mimeType = Self.mimeType(for: ext)
+
+        // Use HTTPURLResponse for gzip Content-Encoding header
+        var headers: [String: String] = [
+            "Content-Type": mimeType,
+            "Content-Length": "\(data.count)"
+        ]
+        if isGzipped {
+            headers["Content-Encoding"] = "gzip"
         }
 
-        let mimeType = Self.mimeType(for: ext)
-        let response = URLResponse(
+        let response = HTTPURLResponse(
             url: url,
-            mimeType: mimeType,
-            expectedContentLength: data.count,
-            textEncodingName: mimeType.hasPrefix("text/") ? "utf-8" : nil
-        )
+            statusCode: 200,
+            httpVersion: "HTTP/1.1",
+            headerFields: headers
+        )!
 
-        schemeLog.notice("[SchemeHandler] Serving \(fileName, privacy: .public) (\(data.count) bytes, \(mimeType, privacy: .public))")
-        urlSchemeTask.didReceive(response)
+        let label = isGzipped ? "gzip" : "raw"
+        schemeLog.notice("[SchemeHandler] Serving \(fileName, privacy: .public) (\(data.count) bytes, \(label, privacy: .public))")
+        urlSchemeTask.didReceive(response as URLResponse)
         urlSchemeTask.didReceive(data)
         urlSchemeTask.didFinish()
     }

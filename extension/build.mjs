@@ -162,6 +162,21 @@ try {
     });
 
     console.log("  Pass 3: iOS offscreen bundle OK → " + iosOutdir);
+
+    // Gzip large files for iOS SchemeHandler serving
+    const { execFileSync } = await import("child_process");
+    const { statSync } = await import("fs");
+    const iosFiles = ["offscreen.js"];
+    for (const f of iosFiles) {
+      const filePath = resolve(iosOutdir, f);
+      if (existsSync(filePath)) {
+        execFileSync("gzip", ["-k", "-f", "-9", filePath]);
+        const origSize = statSync(filePath).size;
+        const gzSize = statSync(filePath + ".gz").size;
+        const ratio = ((1 - gzSize / origSize) * 100).toFixed(1);
+        console.log(`  Gzip: ${f} -- ${(origSize / 1048576).toFixed(1)}MB -> ${(gzSize / 1048576).toFixed(1)}MB (${ratio}% reduction)`);
+      }
+    }
   }
 
   // --- Copy WASM files to dist/wasm/ ---
