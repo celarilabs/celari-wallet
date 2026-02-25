@@ -307,38 +307,92 @@ class BrowserP256AuthWitnessProvider {
   }
 
   async createAuthWit(messageHash) {
+    console.log(`[AuthWit] createAuthWit called`);
+
     // Decode base64 → PKCS8 Uint8Array
     const binaryStr = atob(this._pkcs8Base64);
     const pkcs8Bytes = new Uint8Array(binaryStr.length);
     for (let i = 0; i < binaryStr.length; i++) {
       pkcs8Bytes[i] = binaryStr.charCodeAt(i);
     }
+    // PKCS8 key imported for ECDSA P-256 signing
 
-    // Import P256 key using browser WebCrypto
-    const key = await crypto.subtle.importKey(
-      "pkcs8",
-      pkcs8Bytes,
-      { name: "ECDSA", namedCurve: "P-256" },
-      false,
-      ["sign"],
-    );
+    // Import P256 key using browser WebCrypto (extractable for debug)
+    let key;
+    try {
+      key = await crypto.subtle.importKey(
+        "pkcs8",
+        pkcs8Bytes,
+        { name: "ECDSA", namedCurve: "P-256" },
+        true,
+        ["sign"],
+      );
+      // Key imported OK
+    } catch (e) {
+      console.error(`[AuthWit] Key import FAILED: ${e.message}`);
+      throw e;
+    }
 
     // Sign: WebCrypto SHA-256 hashes internally, matching Noir contract's sha256(outer_hash)
     const hashBytes = messageHash.toBuffer();
+    // Sign the message hash with ECDSA P-256
 
-    const sigRaw = new Uint8Array(
-      await crypto.subtle.sign(
-        { name: "ECDSA", hash: "SHA-256" },
-        key,
-        hashBytes,
-      ),
-    );
+    let sigRaw;
+    try {
+      sigRaw = new Uint8Array(
+        await crypto.subtle.sign(
+          { name: "ECDSA", hash: "SHA-256" },
+          key,
+          hashBytes,
+        ),
+      );
+      // Signature obtained (64 bytes: r || s)
+    } catch (e) {
+      console.error(`[AuthWit] Signing FAILED: ${e.message}`);
+      throw e;
+    }
+
+    // Low-S normalization: Noir's verify_ecdsa_p256 requires s ≤ n/2.
+    // WebCrypto doesn't normalize, so ~50% of signatures have high-S → circuit rejects.
+    // P-256 order n = FFFFFFFF00000000FFFFFFFFFFFFFFFFBCE6FAADA7179E84F3B9CAC2FC632551
+    const P256_N = [
+      0xFF,0xFF,0xFF,0xFF,0x00,0x00,0x00,0x00,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+      0xBC,0xE6,0xFA,0xAD,0xA7,0x17,0x9E,0x84,0xF3,0xB9,0xCA,0xC2,0xFC,0x63,0x25,0x51,
+    ];
+    const P256_HALF_N = [
+      0x7F,0xFF,0xFF,0xFF,0x80,0x00,0x00,0x00,0x7F,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,
+      0xDE,0x73,0x7D,0x56,0xD3,0x8B,0xCF,0x42,0x79,0xDC,0xE5,0x61,0x7E,0x31,0x92,0xA8,
+    ];
+
+    // Compare s (bytes 32-63) against half_n
+    const sBuf = sigRaw.slice(32, 64);
+    let sIsHigh = false;
+    for (let i = 0; i < 32; i++) {
+      if (sBuf[i] > P256_HALF_N[i]) { sIsHigh = true; break; }
+      if (sBuf[i] < P256_HALF_N[i]) { break; }
+    }
+
+    if (sIsHigh) {
+      // s' = n - s  (big-endian subtraction)
+      const newS = new Uint8Array(32);
+      let borrow = 0;
+      for (let i = 31; i >= 0; i--) {
+        const diff = P256_N[i] - sBuf[i] - borrow;
+        newS[i] = diff < 0 ? diff + 256 : diff;
+        borrow = diff < 0 ? 1 : 0;
+      }
+      sigRaw.set(newS, 32);
+      console.log(`[AuthWit] Low-S normalized`);
+    } else {
+      // s is already low-S
+    }
 
     // Pack 64-byte P256 signature (r || s) into AuthWitness fields as Fr elements
     const witnessFields = [];
     for (let i = 0; i < 64; i++) {
       witnessFields.push(new Fr(sigRaw[i]));
     }
+    // 64 Fr fields packed into AuthWitness
 
     return new AuthWitness(messageHash, witnessFields);
   }
@@ -500,6 +554,8 @@ async function registerAccount(data) {
 
   const { publicKeyX, publicKeyY, secretKey, salt, privateKeyPkcs8 } = data;
 
+  // Register account with CelariPasskey contract
+
   const pubKeyXBuf = hexToBuffer(publicKeyX);
   const pubKeyYBuf = hexToBuffer(publicKeyY);
 
@@ -516,11 +572,22 @@ async function registerAccount(data) {
   });
 
   const address = manager.address.toString();
+  const accountAddr = AztecAddress.fromString(address);
 
-  // TestWallet.createAccount() already stores AccountWithSecretKey in its internal
-  // accounts map, which wraps our BrowserCelariPasskeyAccountContract's AccountInterface.
-  // When sendTx is called with {from: address}, TestWallet uses this AccountInterface
-  // for createTxExecutionRequest (which includes P256 signing).
+  // Force PXE to discover the account contract's notes (especially signing_public_key).
+  // TestWallet.createAccount() calls registerContract() → pxe.registerAccount() → addScope(),
+  // but PXE note discovery only happens when sync_private_state is explicitly simulated.
+  // Without this, the first transaction attempt fails because the signing_public_key note
+  // hasn't been discovered yet, causing auth witness verification to fail in the Noir circuit.
+  try {
+    console.log(`[PXE] Triggering note sync for account contract...`);
+    const t0 = Date.now();
+    await wallet.getNotes({ contractAddress: accountAddr });
+    console.log(`[PXE] Note sync completed OK (${Date.now() - t0}ms)`);
+  } catch (err) {
+    console.warn(`[PXE] Note sync warning (non-fatal): ${err.message}`);
+  }
+
   // The Proxy is needed so getAddress() returns the CelariPasskey address.
   const acctWallet = new Proxy(wallet, {
     get(target, prop) {
@@ -570,6 +637,9 @@ async function executeTransfer(data) {
   const senderAddr = acctWallet.getAddress();
 
   console.log(`[PXE] ${transferType} transfer: ${amount} to ${to.slice(0, 16)}...`);
+  console.log(`[PXE] senderAddr: ${senderAddr.toString().slice(0, 22)}...`);
+  console.log(`[PXE] acctWallet type: ${acctWallet?.constructor?.name || 'Proxy'}`);
+  console.log(`[PXE] acctWallet.getAddress(): ${acctWallet.getAddress().toString().slice(0, 22)}...`);
 
   let tx;
   const sendOpts = { from: senderAddr, fee: { paymentMethod } };
@@ -853,7 +923,7 @@ async function deployAccountClientSide(data) {
 
 let faucetAdmin = null;   // { adminAddr, clrToken, tokenAddress }
 const FAUCET_AMOUNT = 100n * 10n ** 18n; // 100 CLR
-const FAUCET_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
+const FAUCET_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes (dev/test)
 let lastFaucetTime = 0;
 
 // Restore faucet rate limit from storage on load
@@ -890,12 +960,18 @@ async function executeFaucet(data) {
           Fr.fromHexString(info.salt),
         );
         const adminAddr = mgr.address;
-        const clrToken = await TokenContract.at(AztecAddress.fromString(info.tokenAddress), wallet);
+        const tokenAddr = AztecAddress.fromString(info.tokenAddress);
+
+        // TokenContract.at() verifies the contract exists on-chain;
+        // if not deployed, it throws → catch sets faucetAdmin = null → re-deploy path
+        const clrToken = await TokenContract.at(tokenAddr, wallet);
         faucetAdmin = { adminAddr, clrToken, tokenAddress: info.tokenAddress };
         console.log(`[PXE] Faucet admin loaded from cache: ${adminAddr.toString().slice(0, 22)}...`);
+        console.log(`[PXE] Token contract verified on-chain ✓`);
       }
     } catch (e) {
       console.warn(`[PXE] Faucet cache load failed: ${e.message?.slice(0, 60)}`);
+      faucetAdmin = null; // Force re-deploy if cache/verification fails
     }
   }
 
