@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AccountSelectorView: View {
     @Environment(WalletStore.self) private var store
+    @Environment(PXEBridge.self) private var pxeBridge
 
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -10,7 +11,7 @@ struct AccountSelectorView: View {
                     let isActive = index == store.activeAccountIndex
 
                     Button {
-                        store.activeAccountIndex = index
+                        switchAccount(to: index)
                     } label: {
                         HStack(spacing: 4) {
                             Text(account.label)
@@ -48,6 +49,19 @@ struct AccountSelectorView: View {
                 }
             }
             .padding(.horizontal, 16)
+        }
+    }
+
+    private func switchAccount(to index: Int) {
+        guard index != store.activeAccountIndex else { return }
+        store.activeAccountIndex = index
+
+        Task {
+            // Notify PXE of the active account change
+            if let account = store.activeAccount, account.deployed, store.pxeInitialized {
+                _ = try? await pxeBridge.setActiveAccount(address: account.address)
+            }
+            await store.fetchBalances()
         }
     }
 }

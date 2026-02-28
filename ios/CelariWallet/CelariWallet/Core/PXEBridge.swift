@@ -346,6 +346,13 @@ extension PXEBridge: WKScriptMessageHandler {
             let msg = json["msg"] as? String ?? ""
             pxeLog.notice("[PXE-JS:\(level, privacy: .public)] \(msg, privacy: .public)")
 
+            // Forward PXE-related logs to in-app log panel
+            if msg.contains("[PXE") || msg.contains("[AuthWit") || level == "error" {
+                Task { @MainActor in
+                    self.store?.appendPXELog(level: level, message: msg)
+                }
+            }
+
         default:
             break
         }
@@ -413,6 +420,10 @@ extension PXEBridge: WKScriptMessageHandler {
                 }
             case "WC_SESSION_REQUEST":
                 store?.showToast("dApp request processed")
+            case "PROGRESS":
+                let msg = json["message"] as? String
+                store?.progressMessage = msg
+                pxeLog.notice("[PXEBridge] Progress: \(msg ?? "nil", privacy: .public)")
             default:
                 break
             }

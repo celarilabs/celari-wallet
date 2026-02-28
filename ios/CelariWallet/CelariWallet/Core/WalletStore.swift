@@ -111,6 +111,29 @@ enum NetworkPreset: String, CaseIterable {
     }
 }
 
+// MARK: - PXE Log Entry
+
+struct PXELogEntry: Identifiable {
+    let id = UUID()
+    let timestamp: Date
+    let level: String
+    let message: String
+
+    var timeString: String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm:ss"
+        return f.string(from: timestamp)
+    }
+
+    var levelIcon: String {
+        switch level {
+        case "error": return "✕"
+        case "warn": return "⚠"
+        default: return "›"
+        }
+    }
+}
+
 // MARK: - Wallet Store
 
 @MainActor
@@ -156,6 +179,15 @@ class WalletStore {
     var loading: Bool = false
     var deploying: Bool = false
     var pxeInitialized: Bool = false
+
+    /// Live progress message from PXE operations (shown as bottom status bar)
+    var progressMessage: String?
+
+    // PXE Logs (in-app console)
+    var pxeLogs: [PXELogEntry] = []
+    var showLogs: Bool = false
+    var deployStep: String = ""
+    private let maxLogEntries = 200
 
     // MARK: - Computed
 
@@ -512,7 +544,13 @@ class WalletStore {
         }
 
         deploying = true
-        defer { deploying = false }
+        // Keep screen awake during deploy — WKWebView JS execution pauses when
+        // the screen locks, which kills proof generation and node connections.
+        UIApplication.shared.isIdleTimerDisabled = true
+        defer {
+            deploying = false
+            UIApplication.shared.isIdleTimerDisabled = false
+        }
 
         walletLog.notice("[WalletStore] deployActiveAccount started — label: \(account.label, privacy: .public)")
 
@@ -577,11 +615,12 @@ class WalletStore {
         }
     }
 
-    // MARK: - Account Re-Registration (after app restart)
+    // MARK: - Account Re-Registration
 
     /// Re-registers a deployed account with the PXE's in-memory store.
     /// Required because iOS PXE uses in-memory KV (no IndexedDB persistence).
-    private func reRegisterAccount(pxeBridge: PXEBridge, account: Account) async {
+    /// Called on app restart and after account restore from backup.
+    func reRegisterAccount(pxeBridge: PXEBridge, account: Account) async {
         do {
             let keys = try KeychainManager.loadAccountKeys(address: account.address)
             guard let secretKey = keys.secretKey,
@@ -696,6 +735,27 @@ class WalletStore {
         if let data = try? JSONEncoder().encode(activities) {
             UserDefaults.standard.set(data, forKey: activitiesKey)
         }
+    }
+
+    // MARK: - PXE Log Management
+
+    func appendPXELog(level: String, message: String) {
+        let entry = PXELogEntry(timestamp: Date(), level: level, message: message)
+        pxeLogs.append(entry)
+        if pxeLogs.count > maxLogEntries {
+            pxeLogs.removeFirst(pxeLogs.count - maxLogEntries)
+        }
+        // Extract deploy step from log messages
+        if message.contains("Deploy Step") || message.contains("Step ") {
+            if let range = message.range(of: #"(?:Deploy )?Step \d+[A-E]?:.*"#, options: .regularExpression) {
+                deployStep = String(message[range])
+            }
+        }
+    }
+
+    func clearPXELogs() {
+        pxeLogs.removeAll()
+        deployStep = ""
     }
 
     // MARK: - Toast

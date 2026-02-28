@@ -3,6 +3,7 @@ import UniformTypeIdentifiers
 
 struct RestoreView: View {
     @Environment(WalletStore.self) private var store
+    @Environment(PXEBridge.self) private var pxeBridge
     @State private var password: String = ""
     @State private var showFilePicker = false
     @State private var selectedFileData: Data?
@@ -95,7 +96,7 @@ struct RestoreView: View {
 
             do {
                 // Decrypt backup using BackupManager (AES-256-GCM + PBKDF2)
-                let payload = try BackupManager.decrypt(encryptedData: data, password: password)
+                let payload = try await BackupManager.decryptAsync(encryptedData: data, password: password)
 
                 // Restore account with Keychain key storage
                 let account = try BackupManager.restoreAccount(from: payload)
@@ -111,6 +112,13 @@ struct RestoreView: View {
                 store.activeAccountIndex = store.accounts.count - 1
                 store.saveAccounts()
                 store.tokens = Token.defaults
+
+                // Re-register deployed accounts with PXE immediately
+                if account.deployed && store.pxeInitialized {
+                    await store.reRegisterAccount(pxeBridge: pxeBridge, account: account)
+                    await store.fetchBalances()
+                }
+
                 store.showToast("Account restored!")
                 store.screen = .dashboard
             } catch {

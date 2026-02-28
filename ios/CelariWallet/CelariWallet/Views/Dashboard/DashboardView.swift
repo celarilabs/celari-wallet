@@ -4,6 +4,8 @@ struct DashboardView: View {
     @Environment(WalletStore.self) private var store
     @Environment(PXEBridge.self) private var pxeBridge
     @State private var activeTab: DashboardTab = .tokens
+    @State private var showFaucetAlert = false
+    @State private var savedBrightness: CGFloat = 0.5
 
     enum DashboardTab: String, CaseIterable {
         case tokens = "Tokens"
@@ -22,6 +24,14 @@ struct DashboardView: View {
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
 
+                    // In-app PXE log panel
+                    if store.showLogs {
+                        PXELogView()
+                            .padding(.horizontal, 16)
+                            .padding(.top, 4)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+
                     AccountSelectorView()
                         .padding(.top, 8)
 
@@ -35,7 +45,7 @@ struct DashboardView: View {
                             store.screen = .receive
                         }
                         ActionButton(icon: "drop", label: "Faucet") {
-                            requestFaucet()
+                            showFaucetAlert = true
                         }
                         ActionButton(icon: "shield", label: "Shield") {
                             store.sendForm = SendForm() // Reset form on navigation (4.13 audit fix)
@@ -110,6 +120,12 @@ struct DashboardView: View {
                 await store.fetchBalances()
             }
         }
+        .alert("Request Faucet", isPresented: $showFaucetAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Request") { requestFaucet() }
+        } message: {
+            Text("This may take 10-15 minutes for proof generation. Keep the screen on during this process — the screen will dim automatically to save battery.")
+        }
         .task {
             await store.fetchBalances()
         }
@@ -118,7 +134,16 @@ struct DashboardView: View {
     private func requestFaucet() {
         guard let account = store.activeAccount else { return }
         store.showToast("Requesting faucet tokens...")
+        // Dim screen to save battery while keeping it awake
+        savedBrightness = UIScreen.main.brightness
+        UIScreen.main.brightness = 0.1
         Task {
+            // Keep screen awake during faucet (3 sequential proofs, ~15 min)
+            UIApplication.shared.isIdleTimerDisabled = true
+            defer {
+                UIApplication.shared.isIdleTimerDisabled = false
+                UIScreen.main.brightness = savedBrightness
+            }
             do {
                 let result = try await pxeBridge.faucet(address: account.address)
 

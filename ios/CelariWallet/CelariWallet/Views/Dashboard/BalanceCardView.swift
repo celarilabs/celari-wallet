@@ -3,6 +3,8 @@ import SwiftUI
 struct BalanceCardView: View {
     @Environment(WalletStore.self) private var store
     @Environment(PXEBridge.self) private var pxeBridge
+    @State private var showDeployAlert = false
+    @State private var savedBrightness: CGFloat = 0.5
 
     var body: some View {
         VStack(spacing: 8) {
@@ -61,7 +63,8 @@ struct BalanceCardView: View {
                 // Deploy button for pending passkey accounts
                 if !account.deployed && account.type == .passkey {
                     Button {
-                        Task { await store.deployActiveAccount(pxeBridge: pxeBridge) }
+                        if store.deploying { return }
+                        showDeployAlert = true
                     } label: {
                         HStack(spacing: 6) {
                             if store.deploying {
@@ -84,6 +87,49 @@ struct BalanceCardView: View {
                     }
                     .disabled(store.deploying)
                     .padding(.top, 4)
+                    .alert("Deploy Account", isPresented: $showDeployAlert) {
+                        Button("Cancel", role: .cancel) {}
+                        Button("Deploy") { startDeploy() }
+                    } message: {
+                        Text("This may take 5-10 minutes for proof generation. Keep the screen on during this process — the screen will dim automatically to save battery.")
+                    }
+
+                    // Deploy step status
+                    if store.deploying && !store.deployStep.isEmpty {
+                        HStack(spacing: 6) {
+                            ProgressView()
+                                .tint(CelariColors.copper)
+                                .scaleEffect(0.6)
+                            Text(store.deployStep)
+                                .font(.system(size: 9, weight: .regular, design: .monospaced))
+                                .foregroundColor(CelariColors.textDim)
+                                .lineLimit(1)
+                        }
+                        .padding(.top, 2)
+                    }
+                }
+
+                // Log toggle
+                if store.deploying || !store.pxeLogs.isEmpty {
+                    Button {
+                        store.showLogs.toggle()
+                    } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: store.showLogs ? "chevron.up" : "chevron.down")
+                                .font(.system(size: 8))
+                            Text(store.showLogs ? "HIDE LOG" : "SHOW LOG")
+                                .font(CelariTypography.monoTiny)
+                                .tracking(1)
+                            if let last = store.pxeLogs.last, !store.showLogs {
+                                Text(cleanLogPreview(last.message))
+                                    .font(.system(size: 8, design: .monospaced))
+                                    .lineLimit(1)
+                                    .foregroundColor(CelariColors.textDim.opacity(0.5))
+                            }
+                        }
+                        .foregroundColor(CelariColors.textDim)
+                    }
+                    .padding(.top, 4)
                 }
             }
         }
@@ -92,5 +138,23 @@ struct BalanceCardView: View {
         .background(CelariColors.balanceGradient)
         .overlay(Rectangle().stroke(CelariColors.border, lineWidth: 1))
         .decoCorners()
+    }
+
+    private func startDeploy() {
+        store.clearPXELogs()
+        store.showLogs = true
+        // Dim screen to save battery while keeping it awake
+        savedBrightness = UIScreen.main.brightness
+        UIScreen.main.brightness = 0.1
+        Task {
+            await store.deployActiveAccount(pxeBridge: pxeBridge)
+            // Restore brightness after deploy finishes (success or failure)
+            UIScreen.main.brightness = savedBrightness
+        }
+    }
+
+    private func cleanLogPreview(_ msg: String) -> String {
+        msg.replacingOccurrences(of: "[PXE] ", with: "")
+           .prefix(40) + (msg.count > 40 ? "..." : "")
     }
 }
