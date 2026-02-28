@@ -3,6 +3,9 @@ import CoreImage.CIFilterBuiltins
 
 struct ReceiveView: View {
     @Environment(WalletStore.self) private var store
+    // Cache QR image to avoid CIContext re-creation on every render (4.7 audit fix)
+    @State private var cachedQRImage: UIImage?
+    @State private var cachedQRAddress: String = ""
 
     var body: some View {
         VStack(spacing: 0) {
@@ -11,8 +14,8 @@ struct ReceiveView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     if let account = store.activeAccount {
-                        // QR Code
-                        if let qrImage = generateQR(from: account.address) {
+                        // QR Code (cached)
+                        if let qrImage = qrImageForAddress(account.address) {
                             Image(uiImage: qrImage)
                                 .interpolation(.none)
                                 .resizable()
@@ -67,6 +70,19 @@ struct ReceiveView: View {
                 .padding(.vertical, 24)
             }
         }
+    }
+
+    private func qrImageForAddress(_ address: String) -> UIImage? {
+        if cachedQRAddress == address, let cached = cachedQRImage {
+            return cached
+        }
+        let image = generateQR(from: address)
+        // Defer state mutation to avoid modifying state during view update
+        DispatchQueue.main.async {
+            cachedQRAddress = address
+            cachedQRImage = image
+        }
+        return image
     }
 
     private func generateQR(from string: String) -> UIImage? {

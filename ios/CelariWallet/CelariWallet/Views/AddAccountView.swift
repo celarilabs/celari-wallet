@@ -63,17 +63,8 @@ struct AddAccountView: View {
         creating = true
         Task {
             do {
-                let result = try await pxeBridge.generateKeys()
-                let address = result["address"] as? String ?? ""
-                let newAccount = Account(
-                    address: address,
-                    label: "Account \(store.accounts.count + 1)"
-                )
-                store.accounts.append(newAccount)
-                store.activeAccountIndex = store.accounts.count - 1
-                store.saveAccounts()
-                store.showToast("Account created")
-                store.screen = .dashboard
+                // Use proper account creation flow with Keychain + passkey (3.2 audit fix)
+                try await store.createPasskeyAccount(pxeBridge: pxeBridge)
             } catch {
                 store.showToast("Failed: \(error.localizedDescription)", type: .error)
             }

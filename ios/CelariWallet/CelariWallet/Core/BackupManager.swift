@@ -6,6 +6,19 @@ enum BackupManager {
 
     // MARK: - Encryption (AES-256-GCM + PBKDF2 — matches popup.js encryptBackup)
 
+    // Run PBKDF2-heavy operations off the main thread (4.9 audit fix)
+    static func encryptAsync(data: [String: Any], password: String) async throws -> Data {
+        try await Task.detached(priority: .userInitiated) {
+            try encrypt(data: data, password: password)
+        }.value
+    }
+
+    static func decryptAsync(encryptedData: Data, password: String) async throws -> [String: Any] {
+        try await Task.detached(priority: .userInitiated) {
+            try decrypt(encryptedData: encryptedData, password: password)
+        }.value
+    }
+
     static func encrypt(data: [String: Any], password: String) throws -> Data {
         let jsonData = try JSONSerialization.data(withJSONObject: data, options: .sortedKeys)
 
@@ -147,9 +160,7 @@ enum BackupManager {
             type: Account.AccountType(rawValue: payload["type"] as? String ?? "passkey") ?? .passkey,
             label: payload["label"] as? String ?? "Restored",
             deployed: payload["deployed"] as? Bool ?? true,
-            salt: payload["salt"] as? String,
-            secretKey: payload["secretKey"] as? String,
-            privateKeyPkcs8: payload["privateKeyPkcs8"] as? String
+            salt: payload["salt"] as? String
         )
 
         // Store sensitive keys in Keychain (biometric-protected)

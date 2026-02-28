@@ -157,7 +157,9 @@ actor NetworkManager {
     func fetchBalances(deployServerUrl: String, address: String) async throws -> BalanceResponse {
         guard !deployServerUrl.isEmpty else { throw NetworkError.noDeployServer }
 
-        let url = URL(string: "\(deployServerUrl)/api/balances")!
+        guard let url = URL(string: "\(deployServerUrl)/api/balances") else {
+            throw NetworkError.invalidURL
+        }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")

@@ -14,6 +14,7 @@ settings:
     INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: true
     INFOPLIST_KEY_UILaunchScreen_Generation: true
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
+    INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
 
 targets:
   CelariWallet:
@@ -21,23 +22,21 @@ targets:
     platform: iOS
     sources:
       - path: CelariWallet
-        excludes:
-          - "**/*.xcassets"
-    resources:
-      - path: CelariWallet/Assets.xcassets
-      - path: CelariWallet/Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.celari.wallet
         MARKETING_VERSION: "0.5.0"
-        CURRENT_PROJECT_VERSION: "1"
+        CURRENT_PROJECT_VERSION: "8"
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_CFBundleDisplayName: "Celari"
+        INFOPLIST_KEY_CFBundleIconName: "AppIcon"
     entitlements:
       path: CelariWallet/CelariWallet.entitlements
       properties:
         com.apple.security.application-groups:
           - group.com.celari.wallet
+        com.apple.developer.associated-domains:
+          - webcredentials:celariwallet.com
 
   CelariWalletTests:
     type: bundle.unit-test

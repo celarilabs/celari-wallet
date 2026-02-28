@@ -1,7 +1,8 @@
 import Foundation
 
 struct Token: Codable, Identifiable {
-    var id: String { symbol }
+    // Use contractAddress+symbol as unique ID to avoid SwiftUI list collisions (4.11 audit fix)
+    var id: String { (contractAddress ?? "") + ":" + symbol }
     var name: String
     var symbol: String
     var balance: String

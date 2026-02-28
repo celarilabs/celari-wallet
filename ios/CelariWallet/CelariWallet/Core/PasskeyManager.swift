@@ -40,7 +40,7 @@ actor PasskeyManager {
         )
         #else
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
-            relyingPartyIdentifier: "celari.wallet"
+            relyingPartyIdentifier: "celariwallet.com"
         )
 
         let userId = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
@@ -79,7 +79,7 @@ actor PasskeyManager {
     @MainActor
     func verifyPasskey(credentialId: String) async throws {
         let provider = ASAuthorizationPlatformPublicKeyCredentialProvider(
-            relyingPartyIdentifier: "celari.wallet"
+            relyingPartyIdentifier: "celariwallet.com"
         )
 
         let challenge = Data((0..<32).map { _ in UInt8.random(in: 0...255) })
@@ -113,19 +113,47 @@ actor PasskeyManager {
 
     // MARK: - P-256 Public Key Extraction
 
-    nonisolated private func extractP256PublicKey(from data: Data) throws -> (String, String) {
-        let bytes = [UInt8](data)
-        // Find uncompressed point marker (0x04) followed by 64 bytes (X + Y)
-        for i in 0..<(bytes.count - 64) {
-            if bytes[i] == 0x04 && i + 65 <= bytes.count {
-                let x = bytes[(i + 1)..<(i + 33)]
-                let y = bytes[(i + 33)..<(i + 65)]
+    nonisolated private func extractP256PublicKey(from attestationObject: Data) throws -> (String, String) {
+        let bytes = [UInt8](attestationObject)
+
+        // Strategy 1: COSE key format (CBOR-encoded attestation object)
+        // In COSE EC2 keys: key -2 (0x21) = x coord, key -3 (0x22) = y coord
+        // Each followed by 0x58 0x20 (CBOR byte string, length 32)
+        var xCoord: [UInt8]?
+        var yCoord: [UInt8]?
+
+        for i in 0..<bytes.count where i + 35 <= bytes.count {
+            if bytes[i] == 0x21 && bytes[i + 1] == 0x58 && bytes[i + 2] == 0x20 {
+                xCoord = Array(bytes[(i + 3)..<(i + 35)])
+            }
+            if bytes[i] == 0x22 && bytes[i + 1] == 0x58 && bytes[i + 2] == 0x20 {
+                yCoord = Array(bytes[(i + 3)..<(i + 35)])
+            }
+        }
+
+        if let x = xCoord, let y = yCoord {
+            print("[PasskeyManager] Extracted P-256 key via COSE format")
+            return (
+                x.map { String(format: "%02x", $0) }.joined(),
+                y.map { String(format: "%02x", $0) }.joined()
+            )
+        }
+
+        // Strategy 2: Fallback — uncompressed point format (0x04 || x || y)
+        for i in 0..<bytes.count where i + 65 <= bytes.count {
+            if bytes[i] == 0x04 {
+                let x = Array(bytes[(i + 1)..<(i + 33)])
+                let y = Array(bytes[(i + 33)..<(i + 65)])
+                print("[PasskeyManager] Extracted P-256 key via uncompressed point format")
                 return (
                     x.map { String(format: "%02x", $0) }.joined(),
                     y.map { String(format: "%02x", $0) }.joined()
                 )
             }
         }
+
+        print("[PasskeyManager] Failed to extract key. Attestation object size: \(bytes.count) bytes")
+        print("[PasskeyManager] First 64 bytes: \(bytes.prefix(64).map { String(format: "%02x", $0) }.joined())")
         throw PasskeyError.noPublicKey
     }
 }

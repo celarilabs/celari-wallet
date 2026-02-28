@@ -72,6 +72,9 @@ struct BackupView: View {
         exporting = true
         Task {
             do {
+                // Biometric gate before backup export (3.1 audit fix)
+                try await store.passkeyManager.authenticateWithBiometrics(reason: "Authenticate to export backup")
+
                 // Build backup payload with Keychain keys
                 guard let account = store.activeAccount else {
                     store.showToast("No active account", type: .error)
@@ -80,7 +83,7 @@ struct BackupView: View {
                 }
 
                 let payload = BackupManager.buildBackupPayload(account: account)
-                let encryptedData = try BackupManager.encrypt(data: payload, password: password)
+                let encryptedData = try await BackupManager.encryptAsync(data: payload, password: password)
                 exportData = encryptedData
                 showShare = true
                 store.showToast("Encrypted backup ready")

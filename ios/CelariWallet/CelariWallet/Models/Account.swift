@@ -10,8 +10,6 @@ struct Account: Codable, Identifiable {
     var label: String
     var deployed: Bool
     var salt: String?
-    var secretKey: String?
-    var privateKeyPkcs8: String?
     var network: String?
     var txHash: String?
     var blockNumber: String?
@@ -32,8 +30,6 @@ struct Account: Codable, Identifiable {
         label: String = "Account 1",
         deployed: Bool = false,
         salt: String? = nil,
-        secretKey: String? = nil,
-        privateKeyPkcs8: String? = nil,
         network: String? = nil,
         txHash: String? = nil,
         blockNumber: String? = nil,
@@ -48,8 +44,6 @@ struct Account: Codable, Identifiable {
         self.label = label
         self.deployed = deployed
         self.salt = salt
-        self.secretKey = secretKey
-        self.privateKeyPkcs8 = privateKeyPkcs8
         self.network = network
         self.txHash = txHash
         self.blockNumber = blockNumber

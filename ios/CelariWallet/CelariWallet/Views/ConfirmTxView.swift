@@ -84,6 +84,9 @@ struct ConfirmTxView: View {
         confirming = true
         Task {
             do {
+                // Biometric gate before transfer (3.1 audit fix)
+                try await store.passkeyManager.authenticateWithBiometrics(reason: "Authenticate to approve transaction")
+
                 let tokenAddress = store.tokenAddresses[store.sendForm.token] ?? ""
                 _ = try await pxeBridge.transfer(
                     to: store.sendForm.to,
@@ -91,8 +94,23 @@ struct ConfirmTxView: View {
                     tokenAddress: tokenAddress,
                     transferType: store.sendForm.transferType.rawValue
                 )
+
+                // Record activity (3.3 audit fix)
+                let activity = Activity(
+                    type: .send,
+                    label: "Sent \(store.sendForm.token)",
+                    amount: "-\(store.sendForm.amount) \(store.sendForm.token)",
+                    isPrivate: store.sendForm.transferType.isPrivate
+                )
+                store.activities.insert(activity, at: 0)
+                store.saveActivities()
+
                 store.showToast("Transaction confirmed")
                 store.sendForm = SendForm()
+
+                // Refresh balances (3.3 audit fix)
+                await store.fetchBalances()
+
                 store.screen = .dashboard
             } catch {
                 store.showToast("Failed: \(error.localizedDescription)", type: .error)

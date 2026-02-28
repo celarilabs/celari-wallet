@@ -101,8 +101,8 @@ struct NftDetailView: View {
                             }
                         }
                         .buttonStyle(CelariPrimaryButtonStyle())
-                        .disabled(recipientAddress.isEmpty || transferring)
-                        .opacity(recipientAddress.isEmpty ? 0.5 : 1)
+                        .disabled(!isValidAddress || transferring)
+                        .opacity(!isValidAddress ? 0.5 : 1)
                     }
                     .padding(.horizontal, 16)
                 }
@@ -118,10 +118,23 @@ struct NftDetailView: View {
         }
     }
 
+    private var isValidAddress: Bool {
+        recipientAddress.hasPrefix("0x") && recipientAddress.count >= 42
+    }
+
     private func transferNft(_ nft: NFTItem) {
+        // Address validation (4.14 audit fix)
+        guard isValidAddress else {
+            store.showToast("Invalid address — must start with 0x", type: .error)
+            return
+        }
+
         transferring = true
         Task {
             do {
+                // Biometric gate before NFT transfer (3.1 audit fix)
+                try await store.passkeyManager.authenticateWithBiometrics(reason: "Authenticate to transfer NFT")
+
                 _ = try await pxeBridge.transferNft(
                     contractAddress: nft.contractAddress,
                     tokenId: nft.tokenId,

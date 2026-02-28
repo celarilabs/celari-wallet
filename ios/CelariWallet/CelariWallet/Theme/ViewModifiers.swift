@@ -55,20 +55,53 @@ struct DecoCorners: ViewModifier {
 // MARK: - Grain Overlay (subtle noise texture)
 
 struct GrainOverlay: View {
+    // Use seeded random generator so the pattern is stable across renders (4.8 audit fix)
+    private struct GrainPoint: Identifiable {
+        let id: Int
+        let x: CGFloat
+        let y: CGFloat
+        let alpha: Double
+    }
+
+    @State private var points: [GrainPoint] = {
+        var rng = SplitMix64(seed: 42)
+        return (0..<800).map { i in
+            GrainPoint(
+                id: i,
+                x: CGFloat(rng.nextFraction()),
+                y: CGFloat(rng.nextFraction()),
+                alpha: 0.01 + rng.nextFraction() * 0.03
+            )
+        }
+    }()
+
     var body: some View {
         Canvas { context, size in
-            for _ in 0..<800 {
-                let x = CGFloat.random(in: 0...size.width)
-                let y = CGFloat.random(in: 0...size.height)
-                let alpha = Double.random(in: 0.01...0.04)
+            for pt in points {
                 context.fill(
-                    Path(CGRect(x: x, y: y, width: 1, height: 1)),
-                    with: .color(.white.opacity(alpha))
+                    Path(CGRect(x: pt.x * size.width, y: pt.y * size.height, width: 1, height: 1)),
+                    with: .color(.white.opacity(pt.alpha))
                 )
             }
         }
         .allowsHitTesting(false)
         .ignoresSafeArea()
+    }
+}
+
+// Simple deterministic PRNG (SplitMix64)
+private struct SplitMix64 {
+    private var state: UInt64
+    init(seed: UInt64) { state = seed }
+    mutating func next() -> UInt64 {
+        state &+= 0x9e3779b97f4a7c15
+        var z = state
+        z = (z ^ (z >> 30)) &* 0xbf58476d1ce4e5b9
+        z = (z ^ (z >> 27)) &* 0x94d049bb133111eb
+        return z ^ (z >> 31)
+    }
+    mutating func nextFraction() -> Double {
+        Double(next() >> 11) / Double(1 << 53)
     }
 }
 

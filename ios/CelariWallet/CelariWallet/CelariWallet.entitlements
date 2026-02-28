@@ -6,5 +6,9 @@
 	<array>
 		<string>group.com.celari.wallet</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>webcredentials:celariwallet.com</string>
+	</array>
 </dict>
 </plist>

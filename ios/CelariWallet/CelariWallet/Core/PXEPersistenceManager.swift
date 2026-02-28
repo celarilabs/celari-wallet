@@ -12,10 +12,19 @@ enum PXEPersistenceManager {
     // MARK: - Encryption Key
 
     private static func getOrCreateKey() throws -> SymmetricKey {
-        // Try loading from Keychain
-        if let keyData = try? KeychainManager.load(key: keychainKey) {
-            return SymmetricKey(data: keyData)
+        // Try loading from Keychain — distinguish "not found" from real errors (3.10 audit fix)
+        do {
+            if let keyData = try KeychainManager.load(key: keychainKey) {
+                return SymmetricKey(data: keyData)
+            }
+            // Key not found — generate new one (first launch)
+        } catch {
+            // Real Keychain error — propagate instead of silently generating a new key
+            // which would make existing snapshots permanently undecryptable
+            pmLog.error("[PXEPersistence] Keychain load error: \(error.localizedDescription, privacy: .public)")
+            throw error
         }
+
         // Generate and persist new key
         let key = SymmetricKey(size: .bits256)
         let keyData = key.withUnsafeBytes { Data($0) }

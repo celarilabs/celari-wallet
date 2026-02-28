@@ -204,8 +204,16 @@ struct SettingsView: View {
     }
 
     private func deleteCurrentAccount() {
-        store.deleteAccount(at: store.activeAccountIndex)
-        store.showToast("Account deleted")
+        Task {
+            do {
+                // Biometric gate before account deletion (3.1 audit fix)
+                try await store.passkeyManager.authenticateWithBiometrics(reason: "Authenticate to delete account")
+                store.deleteAccount(at: store.activeAccountIndex)
+                store.showToast("Account deleted")
+            } catch {
+                store.showToast("Authentication required to delete account", type: .error)
+            }
+        }
     }
 
     private func infoRow(_ label: String, _ value: String) -> some View {
