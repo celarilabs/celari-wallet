@@ -32,15 +32,12 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
         let name = (resolvedName as NSString).deletingPathExtension
         let ext = (resolvedName as NSString).pathExtension
 
-        // Try gzip-compressed variant first (e.g., offscreen.js.gz for offscreen.js)
+        // Serve raw files from bundle (gzip Content-Encoding removed — WKWebView's
+        // ESM module loader doesn't reliably decompress gzip from custom URL schemes,
+        // causing intermittent SyntaxError on first load).
         var data: Data
-        var isGzipped = false
-        if let gzURL = Bundle.main.url(forResource: name, withExtension: ext + ".gz"),
-           let gzData = try? Data(contentsOf: gzURL) {
-            data = gzData
-            isGzipped = true
-        } else if let fileURL = Bundle.main.url(forResource: name, withExtension: ext),
-                  let fileData = try? Data(contentsOf: fileURL) {
+        if let fileURL = Bundle.main.url(forResource: name, withExtension: ext),
+           let fileData = try? Data(contentsOf: fileURL) {
             data = fileData
         } else {
             schemeLog.error("[SchemeHandler] File not found: \(fileName, privacy: .public) (resolved: \(resolvedName, privacy: .public))")
@@ -51,14 +48,11 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
         let mimeType = Self.mimeType(for: ext)
 
         // CORS headers required for <script type="module"> on custom schemes
-        var headers: [String: String] = [
+        let headers: [String: String] = [
             "Content-Type": mimeType,
             "Content-Length": "\(data.count)",
             "Access-Control-Allow-Origin": "*",
         ]
-        if isGzipped {
-            headers["Content-Encoding"] = "gzip"
-        }
 
         let response = HTTPURLResponse(
             url: url,
@@ -67,9 +61,8 @@ final class CelariSchemeHandler: NSObject, WKURLSchemeHandler {
             headerFields: headers
         )!
 
-        let label = isGzipped ? "gzip" : "raw"
         let served = fileName.contains("/") ? "\(fileName) → \(resolvedName)" : fileName
-        schemeLog.notice("[SchemeHandler] Serving \(served, privacy: .public) (\(data.count) bytes, \(label, privacy: .public))")
+        schemeLog.notice("[SchemeHandler] Serving \(served, privacy: .public) (\(data.count) bytes)")
         urlSchemeTask.didReceive(response as URLResponse)
         urlSchemeTask.didReceive(data)
         urlSchemeTask.didFinish()
