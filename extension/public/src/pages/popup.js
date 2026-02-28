@@ -33,7 +33,7 @@ function sanitizeError(e) {
     "TypeError": "Connection failed",
   };
   if (e?.name && safe[e.name]) return safe[e.name];
-  if (msg.includes("Failed to fetch")) return "Server unreachable";
+  if (msg.includes("Failed to fetch")) return "Network unreachable";
   if (msg.includes("timed out")) return "Request timed out";
   if (msg.length > 100) return "An unexpected error occurred";
   return msg.replace(/[<>"'&]/g, "");
@@ -71,7 +71,6 @@ const store = {
   pendingSignRequest: null,
   tokenAddresses: {},
   customNetworks: [],
-  deployServerUrl: "",
   // Phase 3: NFT
   nfts: [],
   customNftContracts: [],
@@ -186,14 +185,6 @@ async function init() {
     }
   } catch (e) {}
 
-  // Load deploy server URL from storage
-  try {
-    const dsData = await chrome.storage.local.get("celari_deploy_server");
-    if (dsData.celari_deploy_server) {
-      store.deployServerUrl = dsData.celari_deploy_server;
-    }
-  } catch (e) {}
-
   // Load custom NFT contracts from storage
   try {
     const nftData = await chrome.storage.local.get("celari_custom_nft_contracts");
@@ -252,47 +243,64 @@ async function fetchRealBalances() {
   const account = getActiveAccount();
   if (!account || !account.deployed || !account.address) return;
 
+  // Build token list from known addresses + custom tokens
+  const tokenList = [];
+  for (const [symbol, address] of Object.entries(store.tokenAddresses || {})) {
+    tokenList.push({ address, name: symbol, symbol, decimals: 18 });
+  }
+  for (const ct of store.customTokens || []) {
+    if (ct.contractAddress && !tokenList.find(t => t.address === ct.contractAddress)) {
+      tokenList.push({ address: ct.contractAddress, name: ct.name, symbol: ct.symbol, decimals: ct.decimals || 18 });
+    }
+  }
+
+  if (tokenList.length === 0) return;
+
   try {
-    const res = await fetch(getDeployServer() + "/api/balances", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ address: account.address }),
-      signal: AbortSignal.timeout(30000),
+    const data = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: "PXE_BALANCES",
+        data: { address: account.address, tokens: tokenList },
+      }, (res) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (!res?.success) {
+          reject(new Error(res?.error || "Balance query failed"));
+        } else {
+          resolve(res);
+        }
+      });
     });
 
-    if (res.ok) {
-      const data = await res.json();
-      if (data.tokenAddresses) {
-        store.tokenAddresses = data.tokenAddresses;
-      }
-      if (data.tokens?.length) {
-        const serverTokens = data.tokens.map(t => ({
-          name: t.name || t.symbol || "Unknown",
-          symbol: t.symbol || "???",
-          balance: t.balance || "0",
-          value: "$" + (parseFloat(t.usdValue || "0")).toFixed(2),
-          icon: (t.symbol || "?")[0].toUpperCase(),
-          color: t.symbol === "CLR" ? "#C87941" : t.symbol === "zkETH" ? "#8B2D3A" : "#9A7B5B",
+    if (data.balances?.length) {
+      const pxeTokens = data.balances.map(t => ({
+        name: t.name || t.symbol || "Unknown",
+        symbol: t.symbol || "???",
+        balance: t.balance || "0",
+        value: "$" + (parseFloat(t.usdValue || "0")).toFixed(2),
+        icon: (t.symbol || "?")[0].toUpperCase(),
+        color: t.symbol === "CLR" ? "#C87941" : t.symbol === "zkETH" ? "#8B2D3A" : "#9A7B5B",
+        contractAddress: t.address,
+        publicBalance: t.publicBalance,
+        privateBalance: t.privateBalance,
+      }));
+      // Append custom tokens that aren't in PXE response
+      const pxeSymbols = new Set(pxeTokens.map(t => t.symbol));
+      const customExtras = store.customTokens
+        .filter(ct => !pxeSymbols.has(ct.symbol))
+        .map(ct => ({
+          name: ct.name,
+          symbol: ct.symbol,
+          balance: "0",
+          value: "$0.00",
+          icon: (ct.symbol || "?")[0].toUpperCase(),
+          color: "#9A7B5B",
+          contractAddress: ct.contractAddress,
+          decimals: ct.decimals,
+          isCustom: true,
         }));
-        // Append custom tokens that aren't in server response
-        const serverSymbols = new Set(serverTokens.map(t => t.symbol));
-        const customExtras = store.customTokens
-          .filter(ct => !serverSymbols.has(ct.symbol))
-          .map(ct => ({
-            name: ct.name,
-            symbol: ct.symbol,
-            balance: "0",
-            value: "$0.00",
-            icon: (ct.symbol || "?")[0].toUpperCase(),
-            color: "#9A7B5B",
-            contractAddress: ct.contractAddress,
-            decimals: ct.decimals,
-            isCustom: true,
-          }));
-        store.tokens = [...serverTokens, ...customExtras];
-        render();
-        return;
-      }
+      store.tokens = [...pxeTokens, ...customExtras];
+      render();
     }
   } catch (e) {
     console.log("[Celari] Balance fetch unavailable:", e.message || e);
@@ -619,10 +627,6 @@ function handleDemoMode() {
 
 // ─── Deploy Banner ────────────────────────────────────
 
-function getDeployServer() {
-  return store.deployServerUrl.replace(/\/$/, "");
-}
-
 function validateDeployResponse(info) {
   if (!info || typeof info !== "object") return false;
   if (typeof info.address !== "string" || !isValidAddress(info.address)) return false;
@@ -725,6 +729,7 @@ function renderSyncBar() {
 function startSyncPolling() {
   const update = () => {
     chrome.runtime.sendMessage({ type: "PXE_SYNC_STATUS" }, (res) => {
+      void chrome.runtime.lastError;
       const dot = document.getElementById("sync-dot");
       const text = document.getElementById("sync-text");
       if (!dot || !text) return;
@@ -931,96 +936,100 @@ function bindDashboard() {
     statusEl.textContent = "Initializing PXE...";
 
     try {
-      // --- Try client-side deploy first (fully decentralized) ---
-      let deployed = false;
-      try {
-        // 1. Ensure PXE is ready
-        statusEl.textContent = "Starting PXE engine...";
-        await new Promise((resolve, reject) => {
+      // --- Client-side deploy via PXE (fully decentralized) ---
+
+      // 1. Ensure PXE is ready (wait up to 180s for initialization)
+      statusEl.textContent = "Starting PXE engine...";
+      const pxeStartTime = Date.now();
+      await new Promise((resolve, reject) => {
+        const timeout = setTimeout(() => reject(new Error("PXE initialization timed out after 5 min")), 300000);
+        let triggered = false;
+
+        const poll = () => {
           chrome.runtime.sendMessage({ type: "PXE_STATUS" }, (res) => {
-            if (res?.success && res.ready) resolve();
-            else reject(new Error("PXE not ready"));
+            void chrome.runtime.lastError; // Suppress port closed warnings
+            const elapsed = Math.round((Date.now() - pxeStartTime) / 1000);
+            console.log("[Deploy] PXE_STATUS:", JSON.stringify({ success: res?.success, ready: res?.ready, error: res?.error, initializing: res?.initializing, initStep: res?.initStep }));
+
+            if (res?.success && res.ready) {
+              clearTimeout(timeout);
+              resolve();
+              return;
+            }
+
+            // If init returned a fatal error (not just "still initializing"), show it
+            if (res?.success && res.error && !res?.initializing) {
+              clearTimeout(timeout);
+              reject(new Error(res.error));
+              return;
+            }
+
+            // If not initializing and not ready, trigger PXE init (fire-and-forget)
+            if (!triggered && !res?.initializing) {
+              triggered = true;
+              statusEl.textContent = "Connecting to Aztec network...";
+              console.log("[Deploy] Triggering PXE_INIT with nodeUrl:", store.nodeUrl);
+              chrome.runtime.sendMessage({ type: "PXE_INIT", nodeUrl: store.nodeUrl }, () => {
+                void chrome.runtime.lastError;
+              });
+            }
+
+            // Show current init step from offscreen
+            if (res?.initializing && res?.initStep) {
+              statusEl.textContent = `${res.initStep} (${elapsed}s)`;
+            } else if (res?.initializing) {
+              statusEl.textContent = `PXE initializing... (${elapsed}s)`;
+            } else if (!res) {
+              statusEl.textContent = `Starting background engine... (${elapsed}s)`;
+            } else {
+              statusEl.textContent = `Waiting for PXE... (${elapsed}s)`;
+            }
+
+            setTimeout(poll, 2000);
           });
+        };
+        poll();
+      });
+
+      // 2. Generate P256 key pair in browser
+      statusEl.textContent = "Generating keys (WebCrypto)...";
+      const keys = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({ type: "PXE_GENERATE_KEYS" }, (res) => {
+          if (res?.success && res.pubKeyX) resolve(res);
+          else reject(new Error(res?.error || "Key generation failed"));
         });
+      });
 
-        // 2. Generate P256 key pair in browser
-        statusEl.textContent = "Generating keys (WebCrypto)...";
-        const keys = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({ type: "PXE_GENERATE_KEYS" }, (res) => {
-            if (res?.success && res.pubKeyX) resolve(res);
-            else reject(new Error(res?.error || "Key generation failed"));
-          });
+      // 3. Deploy account on-chain via client-side PXE
+      statusEl.textContent = "Deploying account on-chain (60-180s)...";
+      const deployResult = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage({
+          type: "PXE_DEPLOY_ACCOUNT",
+          data: {
+            publicKeyX: keys.pubKeyX,
+            publicKeyY: keys.pubKeyY,
+            privateKeyPkcs8: keys.privateKeyPkcs8,
+          },
+        }, (res) => {
+          if (res?.success && res.address) resolve(res);
+          else reject(new Error(res?.error || "Deploy failed"));
         });
+      });
 
-        // 3. Deploy account on-chain via client-side PXE
-        statusEl.textContent = "Deploying account on-chain (60-180s)...";
-        const deployResult = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            type: "PXE_DEPLOY_ACCOUNT",
-            data: {
-              publicKeyX: keys.pubKeyX,
-              publicKeyY: keys.pubKeyY,
-              privateKeyPkcs8: keys.privateKeyPkcs8,
-            },
-          }, (res) => {
-            if (res?.success && res.address) resolve(res);
-            else reject(new Error(res?.error || "Deploy failed"));
-          });
-        });
-
-        // 4. Apply deploy info
-        applyDeployInfo({
-          address: deployResult.address,
-          publicKeyX: keys.pubKeyX,
-          publicKeyY: keys.pubKeyY,
-          secretKey: deployResult.secretKey,
-          salt: deployResult.salt,
-          privateKeyPkcs8: keys.privateKeyPkcs8,
-          network: store.network,
-          nodeUrl: store.nodeUrl,
-          txHash: deployResult.txHash,
-          blockNumber: deployResult.blockNumber,
-          deployedAt: new Date().toISOString(),
-        });
-        deployed = true;
-      } catch (pxeErr) {
-        console.warn("Client-side deploy failed, falling back to server:", pxeErr.message);
-        statusEl.textContent = "Client deploy failed, trying server...";
-      }
-
-      // --- Fallback: server-side deploy ---
-      if (!deployed) {
-        statusEl.textContent = "Connecting to deploy server...";
-        const health = await fetch(getDeployServer() + "/api/health", {
-          signal: AbortSignal.timeout(10000),
-        }).catch(() => null);
-
-        if (!health || !health.ok) {
-          throw new Error("Deploy server unreachable and client-side deploy failed");
-        }
-
-        const status = await health.json();
-        if (status.status !== "ready") {
-          statusEl.textContent = "Server preparing...";
-          await new Promise(r => setTimeout(r, 3000));
-        }
-
-        statusEl.textContent = "Deploying via server... (30-120s)";
-        const res = await fetch(getDeployServer() + "/api/deploy", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: "{}",
-          signal: AbortSignal.timeout(300000),
-        });
-
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({ error: "Unknown error" }));
-          throw new Error(err.error || "HTTP " + res.status);
-        }
-
-        const info = await res.json();
-        applyDeployInfo(info);
-      }
+      // 4. Apply deploy info
+      applyDeployInfo({
+        address: deployResult.address,
+        publicKeyX: keys.pubKeyX,
+        publicKeyY: keys.pubKeyY,
+        secretKey: deployResult.secretKey,
+        salt: deployResult.salt,
+        privateKeyPkcs8: keys.privateKeyPkcs8,
+        network: store.network,
+        nodeUrl: store.nodeUrl,
+        txHash: deployResult.txHash,
+        blockNumber: deployResult.blockNumber,
+        deployedAt: new Date().toISOString(),
+      });
     } catch (e) {
       statusEl.style.color = "var(--red)";
       statusEl.textContent = sanitizeError(e);
@@ -1302,59 +1311,20 @@ async function handleSendConfirm() {
       throw new Error("Token address not found. Deploy your account and wait for balances to load.");
     }
 
-    // Try client-side PXE first (WASM proving), fall back to deploy server
-    let result;
-    const hasPxeKeys = await new Promise((resolve) => {
-      chrome.storage.session.get(["celari_private_key", "celari_secret"], (data) => {
-        resolve(!!(data.celari_private_key && data.celari_secret));
+    // Transfer via client-side PXE (WASM proving)
+    btn.textContent = "Proving locally (WASM)...";
+    const result = await new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage({
+        type: "PXE_TRANSFER",
+        data: { to, amount, tokenAddress: tokenInfo, transferType: store.sendForm.transferType || "private" },
+      }, (res) => {
+        if (res?.success && res.txHash) {
+          resolve(res);
+        } else {
+          reject(new Error(res?.error || "Transfer failed"));
+        }
       });
     });
-
-    if (hasPxeKeys) {
-      btn.textContent = "Proving locally (WASM)...";
-      try {
-        result = await new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({
-            type: "PXE_TRANSFER",
-            data: { to, amount, tokenAddress: tokenInfo, transferType: store.sendForm.transferType || "private" },
-          }, (res) => {
-            if (res?.success && res.txHash) {
-              resolve(res);
-            } else {
-              reject(new Error(res?.error || "PXE transfer failed"));
-            }
-          });
-        });
-        console.log("PXE transfer succeeded:", result.txHash);
-      } catch (pxeErr) {
-        console.warn("PXE transfer failed, falling back to server:", pxeErr.message);
-        btn.textContent = "Sending via server...";
-        result = null; // Fall through to server
-      }
-    }
-
-    // Fallback: deploy server mint-based transfer
-    if (!result) {
-      btn.textContent = "Sending to network...";
-      const res = await fetch(getDeployServer() + "/api/transfer", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          from: account.address,
-          to,
-          amount,
-          tokenAddress: tokenInfo,
-        }),
-        signal: AbortSignal.timeout(300000),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Transfer failed" }));
-        throw new Error(err.error || "HTTP " + res.status);
-      }
-
-      result = await res.json();
-    }
 
     store.activities.unshift({
       type: "send",
@@ -1641,15 +1611,6 @@ function renderSettings() {
         <div style="display:flex;justify-content:space-between"><span>Chain ID</span><span style="color:var(--text-muted)">${escapeHtml(String(store.nodeInfo?.l1ChainId || '-'))}</span></div>
       </div>` : ''}
 
-      <div style="font-family:IBM Plex Mono,monospace;font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:4px;margin-bottom:8px">Deploy Server</div>
-      <div style="background:var(--bg-card);border:1px solid var(--border);margin-bottom:16px;padding:12px">
-        <div class="form-group" style="margin-bottom:8px">
-          <label class="form-label" style="font-size:9px;color:var(--text-dim)">Server URL</label>
-          <input type="text" class="form-input" id="deploy-server-url" value="${escapeHtml(store.deployServerUrl)}" placeholder="http://localhost:3456" autocomplete="off" style="padding:8px 10px;font-size:11px;font-family:IBM Plex Mono,monospace" />
-        </div>
-        <button id="btn-save-deploy-server" class="btn btn-secondary" style="width:100%;padding:8px;font-size:8px">SAVE</button>
-      </div>
-
       <div style="font-family:IBM Plex Mono,monospace;font-size:8px;color:var(--text-faint);text-transform:uppercase;letter-spacing:4px;margin-bottom:8px">Security</div>
       <div style="background:var(--bg-card);border:1px solid var(--border);margin-bottom:16px;overflow:hidden">
         <div style="padding:12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
@@ -1856,17 +1817,6 @@ function bindSettings() {
     });
   });
 
-  // Save deploy server URL
-  document.getElementById("btn-save-deploy-server")?.addEventListener("click", () => {
-    const urlInput = document.getElementById("deploy-server-url");
-    const url = urlInput?.value?.trim();
-    if (!url) { showToast("Enter a server URL", "error"); return; }
-    try { new URL(url); } catch { showToast("Invalid URL format", "error"); return; }
-    store.deployServerUrl = url;
-    chrome.storage.local.set({ celari_deploy_server: url });
-    showToast("Deploy server saved", "success");
-  });
-
   // Delete current account
   document.getElementById("btn-delete-account")?.addEventListener("click", () => {
     const account = getActiveAccount();
@@ -1891,7 +1841,7 @@ function bindSettings() {
 
   document.getElementById("btn-logout")?.addEventListener("click", async () => {
     if (!confirm("Are you sure you want to reset the wallet? All data will be deleted.")) return;
-    await chrome.storage.local.remove(["celari_accounts", "celari_deploy_info", "celari_custom_tokens", "celari_custom_networks", "celari_deploy_server", "celari_custom_nft_contracts"]);
+    await chrome.storage.local.remove(["celari_accounts", "celari_deploy_info", "celari_custom_tokens", "celari_custom_networks", "celari_custom_nft_contracts"]);
     await chrome.storage.session.remove(["celari_keys", "celari_secret", "celari_private_key"]);
     store.accounts = [];
     store.tokens = [];

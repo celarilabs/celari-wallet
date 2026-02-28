@@ -258,6 +258,18 @@ let activeAddress = null;
 // WalletConnect
 let wcClient = null;
 
+// --- Progress Reporting (JS → Swift UI) ---
+function reportProgress(message) {
+  try {
+    if (typeof window !== 'undefined' && window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.pxeEvent) {
+      window.webkit.messageHandlers.pxeEvent.postMessage(JSON.stringify({
+        type: "PROGRESS",
+        message: message || null
+      }));
+    }
+  } catch (e) { /* ignore — non-iOS env */ }
+}
+
 function getActiveWallet() {
   if (!activeAddress) return null;
   return accountWallets.get(activeAddress)?.wallet || null;
@@ -428,6 +440,7 @@ class BrowserCelariPasskeyAccountContract extends DefaultAccountContract {
 
 async function initPXE(nodeUrl) {
   initStep = "Connecting to Aztec node...";
+  reportProgress("Aztec node'a bağlanılıyor...");
   console.log(`[PXE] Connecting to ${nodeUrl}...`);
   const node = createAztecNodeClient(nodeUrl);
   nodeClient = node; // Store for wallet-sdk protocol
@@ -490,6 +503,7 @@ async function initPXE(nodeUrl) {
   }
 
   initStep = "Loading WASM prover engine...";
+  reportProgress("WASM prover yükleniyor...");
   console.log("[PXE] Step C: WASMSimulator + Prover...");
   const t_sim = Date.now();
   const { WASMSimulator } = await import("@aztec/simulator/client");
@@ -510,6 +524,7 @@ async function initPXE(nodeUrl) {
   // TestWallet.create() below creates its own PXE using the shared store, simulator, and prover.
 
   initStep = "Starting PXE wallet engine...";
+  reportProgress("PXE wallet başlatılıyor...");
   console.log("[PXE] Step E: Creating TestWallet (single PXE with shared store)...");
   const t_pxe = Date.now();
   wallet = await Promise.race([
@@ -543,6 +558,7 @@ async function initPXE(nodeUrl) {
     console.warn(`[PXE] Pre-flight: WASM check error: ${wasmErr?.message?.slice(0, 150)}`);
   }
 
+  reportProgress(null);
   pxeReady = true;
   return { status: "ready", chainId: info.chainId.toString() };
 }
@@ -632,10 +648,13 @@ async function executeTransfer(data) {
     }
   }
 
+  reportProgress("Token kontratı hazırlanıyor...");
   const token = await TokenContract.at(tokenAddr, acctWallet);
+  reportProgress("Fee ödeme ayarlanıyor...");
   const { paymentMethod } = await setupSponsoredFPC(acctWallet);
   const senderAddr = acctWallet.getAddress();
 
+  reportProgress("Transfer tx gönderiliyor...");
   console.log(`[PXE] ${transferType} transfer: ${amount} to ${to.slice(0, 16)}...`);
   console.log(`[PXE] senderAddr: ${senderAddr.toString().slice(0, 22)}...`);
   console.log(`[PXE] acctWallet type: ${acctWallet?.constructor?.name || 'Proxy'}`);
@@ -679,9 +698,11 @@ async function executeTransfer(data) {
   const txHash = await tx.getTxHash();
   console.log(`[PXE] Tx: ${txHash.toString().slice(0, 22)}... — proving + waiting...`);
 
-  const receipt = await tx.wait({ timeout: 420_000 }); // 7 min — proof + block on iOS
+  reportProgress("Blok onayı bekleniyor...");
+  const receipt = await tx.wait({ timeout: 600_000 }); // 7 min — proof + block on iOS
   console.log(`[PXE] Confirmed! Block ${receipt.blockNumber}`);
 
+  reportProgress(null);
   return {
     txHash: txHash.toString(),
     blockNumber: receipt.blockNumber?.toString() || "",
@@ -830,6 +851,7 @@ async function deployAccountClientSide(data) {
 
   // Step 1: Create account
   console.log("[PXE] Deploy Step 1: wallet.createAccount()...");
+  reportProgress("Hesap oluşturuluyor...");
   const t1 = Date.now();
   let manager;
   try {
@@ -846,6 +868,7 @@ async function deployAccountClientSide(data) {
   const address = manager.address;
 
   // Step 2: SponsoredFPC
+  reportProgress("Fee ödeme ayarlanıyor...");
   console.log("[PXE] Deploy Step 2: setupSponsoredFPC...");
   const t2 = Date.now();
   let paymentMethod;
@@ -862,6 +885,7 @@ async function deployAccountClientSide(data) {
   }
 
   // Step 3: getDeployMethod
+  reportProgress("Deploy metodu hazırlanıyor...");
   console.log("[PXE] Deploy Step 3: getDeployMethod...");
   const t3 = Date.now();
   const deployMethod = await manager.getDeployMethod();
@@ -876,6 +900,7 @@ async function deployAccountClientSide(data) {
   };
 
   // Step 4: send
+  reportProgress("Deploy tx gönderiliyor...");
   console.log("[PXE] Deploy Step 4: deployMethod.send()...");
   const t4 = Date.now();
   const sentTx = deployMethod.send({
@@ -891,10 +916,13 @@ async function deployAccountClientSide(data) {
   console.log(`[PXE] Deploy Step 5: txHash: ${txHash.toString().slice(0, 22)}... (${Date.now() - t5}ms)`);
 
   // Step 6: wait for inclusion
+  reportProgress("Blok onayı bekleniyor...");
   console.log("[PXE] Deploy Step 6: waiting for block inclusion (timeout 7 min)...");
   const t6 = Date.now();
-  const receipt = await sentTx.wait({ timeout: 420_000 });
+  const receipt = await sentTx.wait({ timeout: 600_000 });
   console.log(`[PXE] Deploy Step 6: Deployed! Block ${receipt.blockNumber} (${Date.now() - t6}ms total)`);
+
+  reportProgress("Hesap deploy edildi ✓");
 
   // Store in multi-account map
   const addrStr = address.toString();
@@ -910,6 +938,7 @@ async function deployAccountClientSide(data) {
   accountWallets.set(addrStr, { manager, wallet: acctWallet });
   activeAddress = addrStr;
 
+  reportProgress(null);
   return {
     address: addrStr,
     secretKey: secretKey.toString(),
@@ -978,6 +1007,7 @@ async function executeFaucet(data) {
   // First-time setup: deploy admin + CLR token
   if (!faucetAdmin) {
     console.log("[PXE] Faucet first-time setup: deploying admin + CLR token...");
+    reportProgress("Faucet kurulumu başlatılıyor...");
 
     const secret = Fr.random();
     const salt = Fr.random();
@@ -985,22 +1015,25 @@ async function executeFaucet(data) {
     const adminAddr = mgr.address;
 
     console.log(`[PXE] Deploying faucet admin ${adminAddr.toString().slice(0, 22)}...`);
+    reportProgress("Admin hesap deploy ediliyor... (1/3)");
     const adminTx = await (await mgr.getDeployMethod()).send({
       from: AztecAddress.ZERO,
       fee: { paymentMethod },
     });
-    await adminTx.wait({ timeout: 420_000 }); // 7 min — proof ~140s + block ~167s on iOS
+    reportProgress("Admin tx onayı bekleniyor... (1/3)");
+    await adminTx.wait({ timeout: 600_000 }); // 10 min — testnet block times vary
     console.log("[PXE] Faucet admin deployed!");
 
     // Retry token deploy — PXE block stream may not have synced the admin's
     // signing key note yet (getTxReceipt checks the node, not PXE local state).
     console.log("[PXE] Deploying CLR token...");
+    reportProgress("CLR Token deploy ediliyor... (2/3)");
     let tokenTx, receipt;
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
         const tokenDeploy = TokenContract.deploy(wallet, adminAddr, "Celari Token", "CLR", 18);
         tokenTx = await tokenDeploy.send({ from: adminAddr, fee: { paymentMethod } });
-        receipt = await tokenTx.wait({ timeout: 420_000 }); // 7 min — proof + block on iOS
+        receipt = await tokenTx.wait({ timeout: 600_000 }); // 10 min — testnet block times vary
         break;
       } catch (e) {
         if (attempt < 5 && e.message?.includes("Failed to get a note")) {
@@ -1032,6 +1065,7 @@ async function executeFaucet(data) {
   // Mint to target address
   const to = AztecAddress.fromString(address);
   console.log(`[PXE] Faucet: minting 100 CLR to ${address.slice(0, 22)}...`);
+  reportProgress("100 CLR mint ediliyor... (3/3)");
 
   const tx = await faucetAdmin.clrToken.methods
     .mint_to_public(to, FAUCET_AMOUNT)
@@ -1039,13 +1073,15 @@ async function executeFaucet(data) {
 
   const txHash = await tx.getTxHash();
   console.log(`[PXE] Faucet tx: ${txHash.toString().slice(0, 22)}... — waiting...`);
+  reportProgress("Mint tx onayı bekleniyor... (3/3)");
 
-  const receipt = await tx.wait({ timeout: 420_000 }); // 7 min — proof + block on iOS
+  const receipt = await tx.wait({ timeout: 600_000 }); // 7 min — proof + block on iOS
   lastFaucetTime = Date.now();
   // Persist rate limit so it survives SW restarts
   chrome.storage.local.set({ celari_last_faucet: lastFaucetTime });
 
   console.log(`[PXE] Faucet done! Block ${receipt.blockNumber}`);
+  reportProgress(null); // Clear status bar
   return {
     txHash: txHash.toString(),
     blockNumber: receipt.blockNumber?.toString() || "",
@@ -1407,7 +1443,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           }
 
           const txHash = await tx.getTxHash();
-          const receipt = await tx.wait({ timeout: 420_000 }); // 7 min — proof + block on iOS
+          const receipt = await tx.wait({ timeout: 600_000 }); // 7 min — proof + block on iOS
           return { txHash: txHash.toString(), blockNumber: receipt.blockNumber?.toString() || "" };
         }
 

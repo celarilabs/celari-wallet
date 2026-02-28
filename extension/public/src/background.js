@@ -29,6 +29,7 @@ const NETWORKS = {
 // --- Offscreen Document (PXE WASM Engine) ----------------------------
 
 let offscreenReady = false;
+let offscreenListenerReady = false; // True after offscreen JS has loaded and listener is registered
 
 async function ensureOffscreen() {
   // Always verify the offscreen document actually exists (Chrome may close it when idle)
@@ -38,43 +39,80 @@ async function ensureOffscreen() {
     });
     if (contexts.length > 0) {
       offscreenReady = true;
+      if (!offscreenListenerReady) {
+        // Document exists but we haven't confirmed JS loaded — wait briefly
+        await waitForOffscreenListener(10000);
+      }
       return;
     }
-    // Document doesn't exist — reset flag and recreate
+    // Document doesn't exist — reset flags and recreate
     offscreenReady = false;
+    offscreenListenerReady = false;
     await chrome.offscreen.createDocument({
       url: "offscreen.html",
       reasons: ["WORKERS"],
       justification: "Aztec PXE WASM proving engine for zero-knowledge proofs",
     });
     offscreenReady = true;
-    console.log("Offscreen document ready");
+    console.log("Offscreen document created — waiting for JS to load...");
+    // Wait for offscreen.js to finish loading (73MB+ bundle) and register listener
+    await waitForOffscreenListener(30000);
   } catch (e) {
     offscreenReady = false;
     console.error("Offscreen creation failed:", e.message);
   }
 }
 
+function waitForOffscreenListener(timeoutMs) {
+  if (offscreenListenerReady) return Promise.resolve();
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const check = () => {
+      if (offscreenListenerReady) { resolve(); return; }
+      if (Date.now() - start > timeoutMs) {
+        console.warn("Offscreen listener wait timed out — proceeding anyway");
+        resolve();
+        return;
+      }
+      setTimeout(check, 500);
+    };
+    check();
+  });
+}
+
 /**
  * Send a message to the offscreen PXE document and await response.
+ * Retries on "message port closed" (offscreen not ready yet).
  */
-async function sendToPXE(msg) {
-  await ensureOffscreen();
-  // Tag message with target so the background's own onMessage handler can skip it
-  const taggedMsg = { ...msg, _target: "offscreen" };
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(taggedMsg, (response) => {
-      if (chrome.runtime.lastError) {
-        // Offscreen may have been closed — reset flag so it's recreated on next call
-        offscreenReady = false;
-        reject(new Error(chrome.runtime.lastError.message));
-      } else if (response?.error) {
-        reject(new Error(response.error));
-      } else {
-        resolve(response);
+async function sendToPXE(msg, retries = 3) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    await ensureOffscreen();
+    try {
+      const taggedMsg = { ...msg, _target: "offscreen" };
+      const result = await new Promise((resolve, reject) => {
+        chrome.runtime.sendMessage(taggedMsg, (response) => {
+          if (chrome.runtime.lastError) {
+            offscreenReady = false;
+            reject(new Error(chrome.runtime.lastError.message));
+          } else if (response?.error) {
+            reject(new Error(response.error));
+          } else {
+            resolve(response);
+          }
+        });
+      });
+      return result;
+    } catch (e) {
+      const isPortClosed = e.message?.includes("port closed") || e.message?.includes("Could not establish connection");
+      if (isPortClosed && attempt < retries) {
+        console.log(`sendToPXE: retry ${attempt + 1}/${retries} for ${msg.type} — ${e.message}`);
+        await new Promise(r => setTimeout(r, 1000 * (attempt + 1))); // 1s, 2s, 3s backoff
+        offscreenReady = false; // Force re-check
+        continue;
       }
-    });
-  });
+      throw e;
+    }
+  }
 }
 
 // --- Pending dApp sign requests (awaiting user confirmation) ---------
@@ -105,6 +143,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
 
   switch (message.type) {
+    case "OFFSCREEN_READY":
+      offscreenListenerReady = true;
+      console.log("Offscreen JS loaded — listener active");
+      sendResponse({ success: true });
+      return;
+
     case "GET_STATE":
       sendResponse({ success: true, state });
       break;
@@ -454,6 +498,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     default:
       // Forward PXE_* messages to offscreen document
       if (message.type?.startsWith("PXE_")) {
+        // PXE_INIT takes minutes — ack immediately, run in background
+        if (message.type === "PXE_INIT") {
+          sendToPXE(message)
+            .then((r) => console.log("PXE_INIT completed:", r?.status || "ok"))
+            .catch((e) => console.warn("PXE_INIT failed:", e.message));
+          sendResponse({ success: true, ack: true });
+          return;
+        }
         sendToPXE(message)
           .then((result) => sendResponse({ success: true, ...result }))
           .catch((e) => sendResponse({ success: false, error: e.message }));

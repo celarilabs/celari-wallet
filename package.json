@@ -26,13 +26,13 @@
     "sdk:build": "cd sdk && npx tsc"
   },
   "dependencies": {
-    "@aztec/accounts": "3.0.2",
-    "@aztec/aztec.js": "3.0.2",
-    "@aztec/l1-artifacts": "3.0.2",
-    "@aztec/noir-contracts.js": "3.0.2",
-    "@aztec/stdlib": "3.0.2",
-    "@aztec/test-wallet": "3.0.2",
-    "@aztec/wallet-sdk": "3.0.2",
+    "@aztec/accounts": "3.0.3",
+    "@aztec/aztec.js": "3.0.3",
+    "@aztec/l1-artifacts": "3.0.3",
+    "@aztec/noir-contracts.js": "3.0.3",
+    "@aztec/stdlib": "3.0.3",
+    "@aztec/test-wallet": "3.0.3",
+    "@aztec/wallet-sdk": "3.0.3",
     "@walletconnect/sign-client": "^2.17.0"
   },
   "devDependencies": {
