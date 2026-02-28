@@ -13,29 +13,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Resend } from "resend";
 import crypto from "crypto";
-
-// In-memory store (replace with KV/Redis for production)
-const recoveries = new Map<
-  string,
-  {
-    accountAddress: string;
-    newPubKeyX: string;
-    newPubKeyY: string;
-    guardians: { email: string; index: number; token: string; approved: boolean; guardianKey?: string }[];
-    createdAt: number;
-    threshold: number;
-  }
->();
-
-// Clean up expired recoveries (24h TTL)
-function cleanExpired() {
-  const now = Date.now();
-  for (const [id, recovery] of recoveries) {
-    if (now - recovery.createdAt > 24 * 60 * 60 * 1000) {
-      recoveries.delete(id);
-    }
-  }
-}
+import { setRecovery } from "./_redis";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
@@ -47,8 +25,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!accountAddress || !newPubKeyX || !newPubKeyY || !guardians?.length) {
     return res.status(400).json({ error: "Missing required fields" });
   }
-
-  cleanExpired();
 
   const recoveryId = crypto.randomUUID();
   const resend = new Resend(process.env.RESEND_API_KEY);
@@ -101,7 +77,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   }
 
-  recoveries.set(recoveryId, {
+  await setRecovery(recoveryId, {
     accountAddress,
     newPubKeyX,
     newPubKeyY,
@@ -112,6 +88,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   return res.status(200).json({ recoveryId });
 }
-
-// Export store for other endpoints
-export { recoveries };

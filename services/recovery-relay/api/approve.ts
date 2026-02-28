@@ -6,7 +6,7 @@
 //   2. Guardian enters their guardian_key → POST validates and stores
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { recoveries } from "./initiate";
+import { getRecovery, setRecovery } from "./_redis";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method === "GET") {
@@ -18,14 +18,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   return res.status(405).json({ error: "Method not allowed" });
 }
 
-function handleGet(req: VercelRequest, res: VercelResponse) {
+async function handleGet(req: VercelRequest, res: VercelResponse) {
   const { rid, token } = req.query;
 
   if (!rid || !token) {
     return res.status(400).send("Invalid link");
   }
 
-  const recovery = recoveries.get(rid as string);
+  const recovery = await getRecovery(rid as string);
   if (!recovery) {
     return res.status(404).send("Recovery not found or expired");
   }
@@ -50,7 +50,7 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
-  const recovery = recoveries.get(recoveryId);
+  const recovery = await getRecovery(recoveryId);
   if (!recovery) {
     return res.status(404).json({ error: "Recovery not found or expired" });
   }
@@ -63,6 +63,9 @@ async function handlePost(req: VercelRequest, res: VercelResponse) {
   // Store the guardian key (will be verified on-chain later)
   guardian.guardianKey = guardianKey;
   guardian.approved = true;
+
+  // Write updated data back to Redis
+  await setRecovery(recoveryId, recovery);
 
   const approvedCount = recovery.guardians.filter((g) => g.approved).length;
 

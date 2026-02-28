@@ -14,7 +14,7 @@
 // }
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { recoveries } from "./initiate";
+import { getRecovery } from "./_redis";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "GET") {
@@ -27,7 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: "Missing recoveryId" });
   }
 
-  const recovery = recoveries.get(rid as string);
+  const recovery = await getRecovery(rid as string);
   if (!recovery) {
     return res.status(404).json({ error: "Recovery not found or expired" });
   }
