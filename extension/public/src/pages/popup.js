@@ -360,34 +360,19 @@ async function handleFaucet() {
 
 // ─── SVG Icons ────────────────────────────────────────
 
-const LOGO_SVG = `<svg width="22" height="24" viewBox="0 0 100 110" fill="none">
-  <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" fill="#1C1616" stroke="#2A2222" stroke-width="1.5"/>
-  <circle cx="50" cy="38" r="11" stroke="#C87941" stroke-width="2" fill="none"/>
-  <circle cx="50" cy="38" r="4" fill="#C87941"/>
-  <path d="M46 44 L44 66 L50 70 L56 66 L54 44" fill="#C87941" opacity="0.8"/>
-</svg>`;
+const LOGO_SVG = `<img src="icons/icon-48.png" width="24" height="24" style="border-radius:22%" alt="Celari"/>`;
 
-const LOGO_LARGE = `<svg width="70" height="77" viewBox="0 0 100 110" fill="none">
-  <path d="M50 0 L100 30 L100 80 L50 110 L0 80 L0 30 Z" stroke="#C87941" stroke-width="0.8" fill="none" opacity="0.2"/>
-  <path d="M50 8 L92 34 L92 76 L50 102 L8 76 L8 34 Z" fill="#151111" stroke="#2A2222" stroke-width="0.5"/>
-  <rect x="25" y="65" width="50" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.4"/>
-  <rect x="30" y="56" width="40" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.5"/>
-  <rect x="35" y="47" width="30" height="6" fill="none" stroke="#C87941" stroke-width="0.8" opacity="0.6"/>
-  <circle cx="50" cy="36" r="10" stroke="#C87941" stroke-width="1.2" fill="none"/>
-  <circle cx="50" cy="36" r="3.5" fill="#C87941"/>
-  <path d="M47 42 L45 62 L50 66 L55 62 L53 42" fill="#C87941" opacity="0.8"/>
-  <rect x="48" y="3" width="4" height="4" fill="#8B2D3A" transform="rotate(45 50 5)" opacity="0.4"/>
-</svg>`;
+const LOGO_LARGE = `<img src="icons/icon-128.png" width="70" height="70" style="border-radius:22%" alt="Celari"/>`;
 
 const icons = {
-  send: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C87941" stroke-width="1.5"><path d="M12 5l0 14M5 12l7-7 7 7"/></svg>`,
-  download: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C87941" stroke-width="1.5"><path d="M12 19l0-14M19 12l-7 7-7-7"/></svg>`,
-  shield: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C87941" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
+  send: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e88c32" stroke-width="1.5"><path d="M12 5l0 14M5 12l7-7 7 7"/></svg>`,
+  download: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e88c32" stroke-width="1.5"><path d="M12 19l0-14M19 12l-7 7-7-7"/></svg>`,
+  shield: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e88c32" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`,
   copy: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>`,
   back: `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>`,
   settings: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>`,
   lock: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>`,
-  check: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#C87941" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`,
+  check: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#e88c32" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>`,
 };
 
 // ─── Render Engine ────────────────────────────────────
@@ -846,7 +831,7 @@ function renderTokenList() {
     const hasPublic = t.publicBalance && t.publicBalance !== "—";
     return `
     <div class="token-item">
-      <div class="token-icon" style="border-color:${escapeHtml(t.color)}"><span style="transform:rotate(-45deg);color:${escapeHtml(t.color)};font-family:Poiret One,cursive;font-size:14px">${escapeHtml(t.icon)}</span></div>
+      <div class="token-icon" style="border-color:${escapeHtml(t.color)}"><span style="transform:rotate(-45deg);color:${escapeHtml(t.color)};font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:14px">${escapeHtml(t.icon)}</span></div>
       <div class="token-info">
         <div class="token-name">${escapeHtml(t.name)}</div>
         <div class="token-symbol">${escapeHtml(t.symbol)}${t.isCustom ? ' <span style="color:var(--text-faint);font-size:7px">CUSTOM</span>' : ''}</div>
@@ -1362,7 +1347,7 @@ function renderReceive() {
       <div style="width:200px;height:200px;margin:0 auto 8px;background:#E8D8CC;display:flex;align-items:center;justify-content:center;position:relative">
         ${renderSimpleQR(address)}
         <div style="position:absolute;background:#1C1616;width:36px;height:36px;display:flex;align-items:center;justify-content:center;">
-          <span style="font-family:Poiret One,cursive;font-size:18px;color:#C87941">C</span>
+          <span style="font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:18px;color:#e88c32">C</span>
         </div>
       </div>
       <div style="font-family:IBM Plex Mono,monospace;font-size:7px;color:var(--text-faint);margin-bottom:12px;letter-spacing:1px;opacity:0.6">DECORATIVE ONLY — USE COPY BUTTON BELOW</div>
@@ -1452,7 +1437,7 @@ function renderAddToken() {
       <div style="background:var(--bg-card);border:1px solid var(--border);overflow:hidden">
         ${store.customTokens.map(t => `
         <div style="padding:10px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)">
-          <div class="token-icon" style="width:24px;height:24px;border-color:#9A7B5B;font-size:11px"><span style="transform:rotate(-45deg);color:#9A7B5B;font-family:Poiret One,cursive">${escapeHtml((t.symbol || "?")[0])}</span></div>
+          <div class="token-icon" style="width:24px;height:24px;border-color:#5bc4d4;font-size:11px"><span style="transform:rotate(-45deg);color:#5bc4d4;font-family:Inter,system-ui,sans-serif;font-weight:300">${escapeHtml((t.symbol || "?")[0])}</span></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:11px;color:var(--text-warm)">${escapeHtml(t.name)}</div>
             <div style="font-size:8px;color:var(--text-dim);font-family:IBM Plex Mono,monospace;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(t.contractAddress)}</div>
@@ -1881,7 +1866,7 @@ function renderSubHeader(title, backScreen) {
     <div class="header">
       <div style="display:flex;align-items:center;gap:8px">
         <button id="btn-back" class="back-btn">${icons.back}</button>
-        <span style="font-family:Poiret One,cursive;font-size:14px;letter-spacing:4px;text-transform:uppercase">${escapeHtml(title)}</span>
+        <span style="font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:14px;letter-spacing:4px;text-transform:uppercase">${escapeHtml(title)}</span>
       </div>
       <div class="header-logo">${LOGO_SVG}</div>
     </div>`;
@@ -1963,7 +1948,7 @@ function renderConfirmTx() {
       <div style="width:48px;height:48px;background:var(--burgundy);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;margin-bottom:4px">
         <span style="transform:rotate(-45deg);font-size:22px;color:var(--copper)">⚡</span>
       </div>
-      <h2 style="font-family:'Poiret One',serif;font-size:20px;color:var(--gold);letter-spacing:2px;margin:0">
+      <h2 style="font-family:'Inter',sans-serif;font-weight:300;font-size:20px;color:var(--gold);letter-spacing:2px;margin:0">
         SIGN REQUEST
       </h2>
       <p style="font-size:10px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin:0">
@@ -2372,8 +2357,8 @@ function renderNftList() {
   }
   return store.nfts.map(nft => `
     <div class="token-item nft-item" data-contract="${escapeHtml(nft.contractAddress)}" data-token-id="${escapeHtml(nft.tokenId)}" style="cursor:pointer">
-      <div class="token-icon" style="border-color:#9A7B5B">
-        <span style="transform:rotate(-45deg);color:#9A7B5B;font-family:Poiret One,cursive;font-size:10px">NFT</span>
+      <div class="token-icon" style="border-color:#5bc4d4">
+        <span style="transform:rotate(-45deg);color:#5bc4d4;font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:10px">NFT</span>
       </div>
       <div class="token-info">
         <div class="token-name">${escapeHtml(nft.contractSymbol || "NFT")} #${escapeHtml(nft.tokenId)}</div>
@@ -2414,9 +2399,9 @@ function renderNftDetail() {
     <div style="padding:16px">
       <div style="background:var(--bg-card);border:1px solid var(--border);padding:20px;text-align:center;margin-bottom:16px">
         <div style="width:80px;height:80px;margin:0 auto 12px;border:2px solid var(--bronze);transform:rotate(45deg);display:flex;align-items:center;justify-content:center">
-          <span style="transform:rotate(-45deg);font-family:Poiret One,cursive;font-size:24px;color:var(--bronze)">NFT</span>
+          <span style="transform:rotate(-45deg);font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:24px;color:var(--bronze)">NFT</span>
         </div>
-        <div style="font-family:Poiret One,cursive;font-size:20px;color:var(--text-warm);letter-spacing:2px">${escapeHtml(nft.contractSymbol)} #${escapeHtml(nft.tokenId)}</div>
+        <div style="font-family:Inter,system-ui,sans-serif;font-weight:300;font-size:20px;color:var(--text-warm);letter-spacing:2px">${escapeHtml(nft.contractSymbol)} #${escapeHtml(nft.tokenId)}</div>
         <div style="font-family:IBM Plex Mono,monospace;font-size:9px;color:var(--text-dim);margin-top:4px">${escapeHtml(nft.contractName)}</div>
         <div style="margin-top:8px;font-size:8px;padding:3px 10px;display:inline-block;font-family:IBM Plex Mono,monospace;letter-spacing:2px;
           background:${nft.isPrivate ? 'var(--green-glow)' : 'rgba(200,121,65,0.08)'};
@@ -2709,7 +2694,7 @@ function renderWcApprove() {
       <div style="width:48px;height:48px;background:var(--burgundy);transform:rotate(45deg);display:flex;align-items:center;justify-content:center;margin-bottom:4px">
         <span style="transform:rotate(-45deg);font-size:18px;color:var(--copper)">WC</span>
       </div>
-      <h2 style="font-family:Poiret One,serif;font-size:18px;letter-spacing:2px;margin:0">SESSION REQUEST</h2>
+      <h2 style="font-family:Inter,sans-serif;font-weight:300;font-size:18px;letter-spacing:2px;margin:0">SESSION REQUEST</h2>
       <p style="font-size:10px;letter-spacing:2px;color:var(--text-dim);text-transform:uppercase;margin:0">A dApp wants to connect</p>
 
       <div style="width:100%;background:var(--bg-card);border:1px solid var(--border);padding:16px;margin:8px 0">

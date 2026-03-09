@@ -64,6 +64,11 @@ struct OnboardingView: View {
                 }
                 .buttonStyle(CelariSecondaryButtonStyle())
 
+                Button("Recover Account") {
+                    store.screen = .recoverAccount
+                }
+                .buttonStyle(CelariSecondaryButtonStyle())
+
                 Button("Demo Mode") {
                     store.enterDemoMode()
                 }

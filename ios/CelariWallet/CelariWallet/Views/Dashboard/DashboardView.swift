@@ -48,8 +48,9 @@ struct DashboardView: View {
                             showFaucetAlert = true
                         }
                         ActionButton(icon: "shield", label: "Shield") {
-                            store.sendForm = SendForm() // Reset form on navigation (4.13 audit fix)
+                            store.sendForm = SendForm()
                             store.sendForm.transferType = .shield
+                            store.sendForm.to = store.activeAccount?.address ?? ""
                             store.screen = .send
                         }
                     }

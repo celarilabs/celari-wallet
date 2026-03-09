@@ -16,7 +16,7 @@ pub contract CelariPasskeyAccount {
         authwit::{account::AccountActions, entrypoint::app::AppPayload},
         context::PrivateContext,
         macros::{
-            functions::{external, initializer, noinitcheck, nophasecheck, view},
+            functions::{allow_phase_change, external, initializer, noinitcheck, view},
             storage::storage,
         },
         messages::message_delivery::MessageDelivery,
@@ -51,7 +51,7 @@ pub contract CelariPasskeyAccount {
         unsafe { set_sender_for_tags(self.address) };
 
         self.storage.signing_public_key.initialize(pub_key_note).deliver(
-            MessageDelivery.CONSTRAINED_ONCHAIN,
+            MessageDelivery.ONCHAIN_CONSTRAINED,
         );
 
         // Safety: Same as above
@@ -68,7 +68,7 @@ pub contract CelariPasskeyAccount {
     // 6. Transaction executes privately
     #[external("private")]
     #[noinitcheck]
-    #[nophasecheck]
+    #[allow_phase_change]
     fn entrypoint(app_payload: AppPayload, fee_payment_method: u8, cancellable: bool) {
         // Safety: sender for tags is unconstrained tagging only
         unsafe { set_sender_for_tags(self.address) };

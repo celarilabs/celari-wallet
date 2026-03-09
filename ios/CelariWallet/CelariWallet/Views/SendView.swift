@@ -22,6 +22,10 @@ struct SendView: View {
                             ForEach(TransferType.allCases, id: \.self) { type in
                                 Button {
                                     store.sendForm.transferType = type
+                                    // Auto-fill own address for shield/unshield
+                                    if type == .shield || type == .unshield {
+                                        store.sendForm.to = store.activeAccount?.address ?? ""
+                                    }
                                 } label: {
                                     Text(type.label)
                                         .font(CelariTypography.monoTiny)
@@ -75,7 +79,21 @@ struct SendView: View {
                         }
                     }
 
-                    FormField(label: "Recipient Address", text: Bindable(store).sendForm.to, placeholder: "0x...")
+                    if store.sendForm.transferType == .shield || store.sendForm.transferType == .unshield {
+                        // Shield/Unshield operates on own wallet — no recipient needed
+                        HStack {
+                            Text("YOUR WALLET")
+                                .font(CelariTypography.monoLabel)
+                                .tracking(2)
+                                .foregroundColor(CelariColors.textDim)
+                            Spacer()
+                            Text(String((store.activeAccount?.address ?? "").prefix(12)) + "...")
+                                .font(CelariTypography.monoTiny)
+                                .foregroundColor(CelariColors.textWarm)
+                        }
+                    } else {
+                        FormField(label: "Recipient Address", text: Bindable(store).sendForm.to, placeholder: "0x...")
+                    }
                     FormField(label: "Amount", text: Bindable(store).sendForm.amount, placeholder: "0.00", keyboardType: .decimalPad)
 
                     DecoSeparator()

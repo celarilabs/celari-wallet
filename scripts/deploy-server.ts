@@ -26,7 +26,8 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 import { createAztecNodeClient } from "@aztec/aztec.js/node";
 import { Fr } from "@aztec/aztec.js/fields";
 import { AztecAddress } from "@aztec/aztec.js/addresses";
-import { TestWallet } from "@aztec/test-wallet/server";
+import { EmbeddedWallet } from "@aztec/wallets/embedded";
+import { AccountManager } from "@aztec/aztec.js/wallet";
 
 import { setupSponsoredFPC, generateP256KeyPair } from "./lib/aztec-helpers.js";
 import { isOriginAllowed } from "./lib/cors.js";
@@ -38,7 +39,7 @@ const NODE_URL = process.env.AZTEC_NODE_URL || "https://rpc.testnet.aztec-labs.c
 
 // --- Shared Wallet (lazy init) -------------------------------------------
 
-let wallet: Awaited<ReturnType<typeof TestWallet.create>> | null = null;
+let wallet: Awaited<ReturnType<typeof EmbeddedWallet.create>> | null = null;
 let walletReady = false;
 let initError: string | null = null;
 
@@ -46,7 +47,7 @@ async function getWallet() {
   if (wallet) return wallet;
   console.log(`Connecting to ${NODE_URL}...`);
   const node = createAztecNodeClient(NODE_URL);
-  wallet = await TestWallet.create(node, { proverEnabled: true });
+  wallet = await EmbeddedWallet.create(node, { pxeConfig: { proverEnabled: true } });
   const info = await wallet.getChainInfo();
   console.log(`Connected — Chain ${info.chainId}, Protocol v${info.version}`);
 
@@ -81,11 +82,7 @@ async function deployAccount(): Promise<Record<string, string>> {
   const accountContract = new CelariPasskeyAccountContract(
     pubKeyXBuf, pubKeyYBuf, undefined, privateKeyPkcs8,
   );
-  const accountManager = await w.createAccount({
-    secret: secretKey,
-    salt,
-    contract: accountContract,
-  });
+  const accountManager = await AccountManager.create(w, secretKey, accountContract, salt);
 
   const address = accountManager.address;
   console.log(`Deploying ${address.toString().slice(0, 22)}...`);
@@ -94,15 +91,14 @@ async function deployAccount(): Promise<Record<string, string>> {
   const { paymentMethod } = await setupSponsoredFPC(w);
 
   const deployMethod = await accountManager.getDeployMethod();
-  const sentTx = await deployMethod.send({
+  const receipt = await deployMethod.send({
     from: AztecAddress.ZERO,
     fee: { paymentMethod },
+    wait: { timeout: 180_000, returnReceipt: true },
   });
 
-  const txHash = await sentTx.getTxHash();
-  console.log(`Tx: ${txHash.toString().slice(0, 22)}... — waiting...`);
-
-  const receipt = await sentTx.wait({ timeout: 180_000 });
+  const txHash = receipt.txHash;
+  console.log(`Tx: ${txHash.toString().slice(0, 22)}...`);
   console.log(`Deployed! Block ${receipt.blockNumber}`);
 
   const chainInfo = await w.getChainInfo();
@@ -257,16 +253,14 @@ async function setupTransferInfra() {
   const mgr = await w.createSchnorrAccount(secret, salt);
   adminAddr = mgr.address;
 
-  const adminTx = await (await mgr.getDeployMethod()).send({ from: AztecAddress.ZERO, fee: { paymentMethod } });
   console.log(`Deploying admin ${adminAddr.toString().slice(0, 16)}...`);
-  await adminTx.wait({ timeout: 180_000 });
+  await (await mgr.getDeployMethod()).send({ from: AztecAddress.ZERO, fee: { paymentMethod }, wait: { timeout: 180_000 } });
 
-  const tokenDeploy = TokenContract.deploy(w, adminAddr, "Celari Token", "CLR", 18);
-  const tokenTx = await tokenDeploy.send({ from: adminAddr, fee: { paymentMethod } });
   console.log("Deploying CLR token...");
-  const receipt = await tokenTx.wait({ timeout: 180_000 });
-  const tokenAddress = receipt.contract.address;
-  clrToken = await TokenContract.at(tokenAddress, w);
+  const token = await TokenContract.deploy(w, adminAddr, "Celari Token", "CLR", 18)
+    .send({ from: adminAddr, fee: { paymentMethod }, wait: { timeout: 180_000 } });
+  const tokenAddress = token.address;
+  clrToken = token;
 
   // Save for next restart
   writeFileSync(adminPath, JSON.stringify({
@@ -295,16 +289,14 @@ async function transferToken(
   const rawAmount = BigInt(Math.floor(parseFloat(amount) * 1e18));
 
   console.log(`Minting ${amount} CLR to ${toAddr.slice(0, 16)}...`);
-  const tx = await clrToken.methods
+  const receipt = await clrToken.methods
     .mint_to_public(to, rawAmount)
-    .send({ from: adminAddr!, fee: { paymentMethod } });
+    .send({ from: adminAddr!, fee: { paymentMethod }, wait: { timeout: 180_000 } });
 
-  const txHash = await tx.getTxHash();
-  console.log(`Tx: ${txHash.toString().slice(0, 22)}... — waiting...`);
-  const receipt = await tx.wait({ timeout: 180_000 });
+  console.log(`Tx: ${receipt.txHash.toString().slice(0, 22)}...`);
   console.log(`Done! Block ${receipt.blockNumber}`);
 
-  return { txHash: txHash.toString(), blockNumber: receipt.blockNumber?.toString() || "" };
+  return { txHash: receipt.txHash.toString(), blockNumber: receipt.blockNumber?.toString() || "" };
 }
 
 // --- Faucet Rate Limiting ------------------------------------------------

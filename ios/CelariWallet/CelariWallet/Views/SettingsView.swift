@@ -84,6 +84,9 @@ struct SettingsView: View {
                             settingsRow("Restore Wallet") {
                                 store.screen = .restore
                             }
+                            settingsRow("Guardian Recovery") {
+                                store.screen = .guardianSetup
+                            }
                         }
                     }
 

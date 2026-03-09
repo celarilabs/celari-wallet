@@ -22,6 +22,8 @@ enum Screen: Equatable {
     case nftDetail
     case walletConnect
     case wcApprove
+    case guardianSetup
+    case recoverAccount
 }
 
 // MARK: - Supporting Types
@@ -105,7 +107,7 @@ enum NetworkPreset: String, CaseIterable {
     var url: String {
         switch self {
         case .local: return "http://localhost:8080"
-        case .devnet: return "https://devnet-6.aztec-labs.com/"
+        case .devnet: return "https://v4-devnet-2.aztec-labs.com/"
         case .testnet: return "https://rpc.testnet.aztec-labs.com/"
         }
     }
@@ -144,8 +146,8 @@ class WalletStore {
 
     // Connection
     var connected: Bool = false
-    var network: String = "testnet"
-    var nodeUrl: String = "https://rpc.testnet.aztec-labs.com/"
+    var network: String = "local"
+    var nodeUrl: String = "http://localhost:8080"
     var nodeInfo: NodeInfo?
 
     // Accounts
@@ -284,8 +286,21 @@ class WalletStore {
                     // Account already deployed — re-register with PXE (in-memory store is fresh)
                     walletLog.notice("[WalletStore] PXE ready, account deployed — re-registering with PXE")
                     await self.reRegisterAccount(pxeBridge: pxeBridge, account: account)
+                    // Wait for PXE block sync to discover private notes (note sync needs a few seconds)
+                    walletLog.notice("[WalletStore] Waiting 3s for PXE note sync...")
+                    try? await Task.sleep(for: .seconds(3))
                     await self.fetchBalances()
+                    // Save PXE snapshot so private notes persist across restarts
+                    await self.savePXESnapshot()
                 }
+
+                #if targetEnvironment(simulator)
+                // Auto-deploy on simulator when account exists but is not deployed
+                if let account = self.activeAccount, !account.deployed {
+                    walletLog.notice("[WalletStore] Simulator: auto-deploying undeployed account...")
+                    await self.deployActiveAccount(pxeBridge: pxeBridge)
+                }
+                #endif
             } catch {
                 walletLog.error("[WalletStore] PXE init failed: \(error.localizedDescription, privacy: .public)")
             }

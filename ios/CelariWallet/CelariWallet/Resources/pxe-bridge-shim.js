@@ -136,10 +136,56 @@
   };
 
   // chrome.runtime.sendMessage → forward to Swift (for WC events, etc.)
+  // Also handles faucet cache persistence via localStorage (no background.js on iOS)
   window.chrome.runtime.sendMessage = function(msg, callback) {
-    if (msg && msg.type && msg.type.startsWith('WC_')) {
-      // WalletConnect events go to Swift
-      window.webkit.messageHandlers.pxeEvent.postMessage(JSON.stringify(msg));
+    if (msg && msg.type) {
+      switch (msg.type) {
+        // WalletConnect events go to Swift
+        case 'WC_SESSION_PROPOSAL':
+        case 'WC_SESSION_REQUEST':
+        case 'WC_SESSION_DELETE':
+          window.webkit.messageHandlers.pxeEvent.postMessage(JSON.stringify(msg));
+          if (callback) callback({ success: true });
+          return;
+
+        // Faucet cache: persist admin + token info across app restarts
+        case 'SET_FAUCET_CACHE':
+          try { localStorage.setItem('celari_faucet_cache', JSON.stringify(msg.data)); }
+          catch(e) { console.warn('[PXE-Shim] Failed to save faucet cache:', e.message); }
+          if (callback) callback({ success: true });
+          return;
+
+        case 'GET_FAUCET_CACHE':
+          try {
+            var cached = localStorage.getItem('celari_faucet_cache');
+            if (callback) callback({ data: cached ? JSON.parse(cached) : null });
+          } catch(e) {
+            console.warn('[PXE-Shim] Failed to load faucet cache:', e.message);
+            if (callback) callback({ data: null });
+          }
+          return;
+
+        // Faucet rate limit: persist last mint timestamp
+        case 'SET_FAUCET_RATE':
+          try { localStorage.setItem('celari_faucet_rate', String(msg.lastFaucetTime || 0)); }
+          catch(e) {}
+          if (callback) callback({ success: true });
+          return;
+
+        case 'GET_FAUCET_RATE':
+          try {
+            var ts = localStorage.getItem('celari_faucet_rate');
+            if (callback) callback({ lastFaucetTime: ts ? Number(ts) : 0 });
+          } catch(e) {
+            if (callback) callback({ lastFaucetTime: 0 });
+          }
+          return;
+      }
+
+      // Forward any other typed messages to Swift
+      if (msg.type.startsWith('WC_')) {
+        window.webkit.messageHandlers.pxeEvent.postMessage(JSON.stringify(msg));
+      }
     }
     if (callback) callback({ success: true });
   };
@@ -282,6 +328,10 @@
     }
     var messageId = msg._messageId;
     delete msg._messageId;
+
+    // Tag message as coming from the offscreen target —
+    // offscreen.js filters on msg._target === "offscreen" (set by background.js in Chrome)
+    msg._target = "offscreen";
 
     console.log('[PXE-Shim] Dispatching to ' + _messageHandlers.length + ' handler(s), type=' + msg.type);
 

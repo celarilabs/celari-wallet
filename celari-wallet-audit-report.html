@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Celari Wallet - Kapsamli Denetim Raporu</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 2.2cm;
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: "Helvetica Neue", Arial, sans-serif;
+      font-size: 9px;
+      color: #888;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.55;
+    color: #1a1a1a;
+    max-width: 100%;
+  }
+  h1 {
+    font-size: 22pt;
+    font-weight: 700;
+    color: #0d0d0d;
+    border-bottom: 3px solid #111;
+    padding-bottom: 10px;
+    margin-top: 0;
+    margin-bottom: 6px;
+  }
+  .subtitle {
+    font-size: 11pt;
+    color: #555;
+    margin-bottom: 30px;
+  }
+  h2 {
+    font-size: 15pt;
+    font-weight: 700;
+    color: #111;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    border-bottom: 1.5px solid #ccc;
+    padding-bottom: 4px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 11.5pt;
+    font-weight: 700;
+    color: #222;
+    margin-top: 18px;
+    margin-bottom: 6px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #333;
+    margin-top: 14px;
+    margin-bottom: 4px;
+  }
+  p { margin: 6px 0; }
+  code {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 9pt;
+    background: #f4f4f4;
+    padding: 1px 4px;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: "SF Mono", "Menlo", "Consolas", monospace;
+    font-size: 8.5pt;
+    background: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    padding: 10px 12px;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.4;
+    page-break-inside: avoid;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0 14px 0;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #1a1a1a;
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    padding: 7px 10px;
+    font-size: 9pt;
+  }
+  td {
+    border-bottom: 1px solid #ddd;
+    padding: 6px 10px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+  .severity-critical {
+    background: #dc2626;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+  .severity-high {
+    background: #ea580c;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+  .severity-medium {
+    background: #ca8a04;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 700;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+  .severity-low {
+    background: #6b7280;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+  .badge-celari {
+    background: #16a34a;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 8pt;
+  }
+  .badge-azguard {
+    background: #2563eb;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 8pt;
+  }
+  .badge-equal {
+    background: #6b7280;
+    color: #fff;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 600;
+    font-size: 8pt;
+  }
+  .finding-box {
+    border-left: 4px solid #dc2626;
+    background: #fef2f2;
+    padding: 10px 14px;
+    margin: 10px 0;
+    border-radius: 0 4px 4px 0;
+    page-break-inside: avoid;
+  }
+  .finding-box.high {
+    border-left-color: #ea580c;
+    background: #fff7ed;
+  }
+  .finding-box.medium {
+    border-left-color: #ca8a04;
+    background: #fefce8;
+  }
+  .action-plan {
+    background: #f0fdf4;
+    border: 1px solid #86efac;
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin: 12px 0;
+  }
+  .action-plan h4 {
+    color: #166534;
+    margin-top: 0;
+  }
+  .toc {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 16px 22px;
+    margin: 16px 0 24px 0;
+  }
+  .toc ul {
+    list-style: none;
+    padding-left: 0;
+    margin: 0;
+  }
+  .toc li {
+    padding: 3px 0;
+    font-size: 10pt;
+  }
+  .toc li::before {
+    content: "\25B8  ";
+    color: #888;
+  }
+  .cover-logo {
+    text-align: center;
+    margin: 60px 0 20px 0;
+  }
+  .cover-logo .logo-text {
+    font-size: 42pt;
+    font-weight: 300;
+    letter-spacing: 8px;
+    color: #111;
+  }
+  .cover-tagline {
+    text-align: center;
+    font-size: 10pt;
+    color: #888;
+    font-style: italic;
+    margin-bottom: 50px;
+  }
+  .meta-table {
+    width: auto;
+    margin: 0 auto 40px auto;
+  }
+  .meta-table td {
+    border: none;
+    padding: 4px 14px;
+    font-size: 10pt;
+  }
+  .meta-table td:first-child {
+    font-weight: 600;
+    color: #555;
+    text-align: right;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+  }
+  .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<!-- COVER PAGE -->
+<div class="cover-logo">
+  <div class="logo-text">CELARI</div>
+</div>
+<div class="cover-tagline">celāre (Latin) &mdash; to hide, to conceal, to keep secret</div>
+
+<h1 style="text-align:center; border:none; font-size:18pt;">Kapsamli iOS Uygulama Denetim Raporu</h1>
+<p style="text-align:center; color:#666; font-size:10pt;">Guvenlik &bull; Mimari &bull; Kod Kalitesi &bull; Rekabet Analizi</p>
+
+<table class="meta-table">
+<tr><td>Tarih:</td><td>23 Subat 2026</td></tr>
+<tr><td>Versiyon:</td><td>0.3.0</td></tr>
+<tr><td>Platform:</td><td>iOS (SwiftUI) + Chrome Extension + Noir Smart Contract</td></tr>
+<tr><td>Aztec SDK:</td><td>v3.0.3 (JS) / v3.0.2 (Noir)</td></tr>
+<tr><td>Denetim Araci:</td><td>Claude Code (Opus 4.6)</td></tr>
+</table>
+
+<div class="toc">
+  <h3 style="margin-top:0;">Icindekiler</h3>
+  <ul>
+    <li>1. Yonetici Ozeti</li>
+    <li>2. Kritik Sorunlar</li>
+    <li>3. Yuksek Seviye Sorunlar</li>
+    <li>4. Orta Seviye Sorunlar</li>
+    <li>5. Core Katman Detayli Analiz</li>
+    <li>6. Views Katman Detayli Analiz</li>
+    <li>7. PXE Bridge ve Polyfill Analizi</li>
+    <li>8. Noir Kontrat ve Script Analizi</li>
+    <li>9. Azguard Wallet Karsilastirmasi</li>
+    <li>10. Oncelikli Aksiyon Plani</li>
+  </ul>
+</div>
+
+<!-- SECTION 1 -->
+<div class="page-break"></div>
+<h2>1. Yonetici Ozeti</h2>
+
+<p>Celari Wallet, Aztec Network uzerinde calisan <strong>passkey-native bir gizlilik cuzdani</strong>dir. P256/secp256r1 imza dogrulamasi yapan ozel bir Noir akilli kontrat ile birlikte iOS native uygulama, Chrome extension, SDK ve tanitim websitesi icermektedir.</p>
+
+<p>Bu denetimde <strong>5 kritik, 8 yuksek, 10+ orta seviye</strong> sorun tespit edilmistir. En onemli bulgu, WebAuthn imza formatinin Noir kontrat beklentisiyle uyumsuz olmasidir &mdash; bu wallet'in temel islevini etkileyen bir sorundur.</p>
+
+<table>
+<tr>
+  <th>Kategori</th>
+  <th>Kritik</th>
+  <th>Yuksek</th>
+  <th>Orta</th>
+  <th>Dusuk</th>
+</tr>
+<tr>
+  <td>Guvenlik</td><td>3</td><td>4</td><td>3</td><td>3</td>
+</tr>
+<tr>
+  <td>Dogruluk / Bug</td><td>2</td><td>4</td><td>5</td><td>2</td>
+</tr>
+<tr>
+  <td>UI/UX / Erisilebilirlik</td><td>0</td><td>3</td><td>8</td><td>4</td>
+</tr>
+<tr>
+  <td>Performans</td><td>0</td><td>1</td><td>3</td><td>3</td>
+</tr>
+<tr>
+  <td><strong>Toplam</strong></td><td><strong>5</strong></td><td><strong>12</strong></td><td><strong>19</strong></td><td><strong>12</strong></td>
+</tr>
+</table>
+
+<!-- SECTION 2 -->
+<div class="page-break"></div>
+<h2>2. Kritik Sorunlar</h2>
+
+<div class="finding-box">
+<h3><span class="severity-critical">Kritik</span> 2.1 &mdash; WebAuthn Imza Uyumsuzlugu</h3>
+<p><strong>Dosyalar:</strong> <code>contracts/.../main.nr:120-130</code>, <code>src/utils/passkey.ts:128-167</code>, <code>src/utils/passkey_account.ts:41-67</code></p>
+<p><strong>Sorun:</strong> Noir kontrat <code>SHA-256(outer_hash_bytes)</code> uzerinden imza dogruluyor. Ancak WebAuthn/Passkey ile imza atildiginda, tarayici aslinda <code>SHA-256(authenticatorData || SHA-256(clientDataJSON))</code> uzerinden imzaliyor &mdash; tamamen farkli bir deger.</p>
+<p><strong>Etki:</strong> CLI'den raw <code>subtle.sign()</code> ile calisir, ama gercek kullanici tarayicida passkey ile transaction imzaladiginda kontrat REDDEDER. Wallet'in temel vaadi kirilir.</p>
+<p><strong>Cozum:</strong> (a) Noir kontrati WebAuthn formatini destekleyecek sekilde guncelle &mdash; auth witness'a authenticatorData + clientDataJSON ekle, veya (b) tarayici tarafinda raw P256 signing kullan (ama bu passkey amacini bozar).</p>
+</div>
+
+<div class="finding-box">
+<h3><span class="severity-critical">Kritik</span> 2.2 &mdash; Thread-Safety: PXEBridge.pendingCallbacks</h3>
+<p><strong>Dosya:</strong> <code>PXEBridge.swift:16, 134, 142, 152, 308</code></p>
+<p><strong>Sorun:</strong> <code>pendingCallbacks</code> dictionary'si hicbir senkronizasyon olmadan birden fazla thread'den erisiyor. <code>withCheckedThrowingContinuation</code> uc farkli yoldan resume edilebilir: (1) JS response, (2) evaluateJavaScript error, (3) timeout. <code>CheckedContinuation</code> iki kez resume edilirse <strong>fatal crash</strong> olusur.</p>
+<p><strong>Cozum:</strong> <code>pendingCallbacks</code> erisimini <code>@MainActor</code> ile izole et veya <code>NSLock</code> / actor kullan. Ayrica continuation'i <code>Optional</code> wrapper ile sar, sadece ilk resume'de calistir.</p>
+</div>
+
+<div class="finding-box">
+<h3><span class="severity-critical">Kritik</span> 2.3 &mdash; Private Key UserDefaults'ta</h3>
+<p><strong>Dosyalar:</strong> <code>Account.swift:13-14</code>, <code>WalletStore.swift:562-569, 682-684</code></p>
+<p><strong>Sorun:</strong> <code>Account</code> struct'inda <code>secretKey</code> ve <code>privateKeyPkcs8</code> Codable field olarak mevcut. <code>saveAccounts()</code> cagirildiginda bu degerler <code>UserDefaults</code>'a serialize ediliyor. Keychain bypass edilerek duz metin plist dosyasina yaziliyor.</p>
+<p><strong>Etki:</strong> Jailbreak'li cihaz, sifresiz iTunes backup, veya forensic extraction ile private key'ler ele gecirilebilir.</p>
+<p><strong>Cozum:</strong> <code>Account</code> struct'indan <code>secretKey</code> ve <code>privateKeyPkcs8</code> field'larini kaldir. Bu degerler sadece Keychain'de saklanmali. Mevcut UserDefaults verisinden de temizlenmeli.</p>
+</div>
+
+<div class="finding-box">
+<h3><span class="severity-critical">Kritik</span> 2.4 &mdash; Deploy Server Private Key Donduruyor</h3>
+<p><strong>Dosya:</strong> <code>scripts/deploy-server.ts:115-116</code></p>
+<p><strong>Sorun:</strong> <code>/api/deploy</code> endpoint'i P256 private key + Aztec secret key'i HTTP response'da donduruyor. CORS tarayici tarafli; <code>curl</code> ile bypass edilir. Hicbir authentication yok.</p>
+<p><strong>Cozum:</strong> Private key'i HTTP uzerinden dondurmekten vazgec. Key generation client-side yapilmali. Deploy server sadece public key alip kontrat deploy etmeli.</p>
+</div>
+
+<div class="finding-box">
+<h3><span class="severity-critical">Kritik</span> 2.5 &mdash; JavaScript Injection (String Interpolation)</h3>
+<p><strong>Dosya:</strong> <code>PXEBridge.swift:136</code></p>
+<pre>let js = "window._receiveFromSwift('\(jsonString.replacingOccurrences(of: "'", with: "\\'"))')"</pre>
+<p><strong>Sorun:</strong> Sadece tek tirnak escape ediliyor. Backslash iceren JSON, JS string literal'dan breakout yapabilir. Kullanici girdisi (ornegin alici adres) uzerinden arbitrary JavaScript calistirma mumkun.</p>
+<p><strong>Cozum:</strong> Tum mesaj gonderimlerinde <code>callAsyncJavaScript</code> ile structured arguments kullan (snapshot restore icin zaten yapilmis).</p>
+</div>
+
+<!-- SECTION 3 -->
+<div class="page-break"></div>
+<h2>3. Yuksek Seviye Sorunlar</h2>
+
+<table>
+<tr><th>#</th><th>Sorun</th><th>Dosya</th><th>Detay</th></tr>
+<tr>
+  <td><span class="severity-high">3.1</span></td>
+  <td>Transfer/backup oncesi biometric dogrulama YOK</td>
+  <td><code>WalletStore.swift</code></td>
+  <td><code>verifyPasskey()</code> metodu var ama hic cagirilmiyor. Para gonderme, backup, hesap silme islemleri oncesi kimlik dogrulamasi yapilmiyor.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.2</span></td>
+  <td>AddAccountView bozuk hesap olusturuyor</td>
+  <td><code>AddAccountView.swift:68-71</code></td>
+  <td>Keychain key storage, P-256 key generation ve passkey credential olusturma atlanarak dogrudan <code>pxeBridge.generateKeys()</code> cagriliyor. Sonuc: imzalanamayan, deploy edilemeyen hesap.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.3</span></td>
+  <td>ConfirmTxView activity kaydetmiyor</td>
+  <td><code>ConfirmTxView.swift:83-102</code></td>
+  <td>Transfer basarili oluyor ama Activity listesine eklenmiyor. Balance refresh da yapilmiyor. Kullanici islemin olup olmadigini goremez.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.4</span></td>
+  <td><code>allowFileAccessFromFileURLs</code> private API</td>
+  <td><code>PXEBridge.swift:35</code></td>
+  <td>Apple'in private API key'i &mdash; App Store rejection riski. Ayrica WebView'da XSS varsa yerel dosyalar okunabilir. <code>WKURLSchemeHandler</code> ile custom scheme kullanilmali.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.5</span></td>
+  <td>WalletStore @MainActor degil</td>
+  <td><code>WalletStore.swift</code></td>
+  <td><code>@Observable</code> class ama <code>@MainActor</code> degil. Background Task'lardan SwiftUI state degistiriliyor (connected, pxeInitialized, deploying, accounts). UI glitch veya crash olusabilir.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.6</span></td>
+  <td><code>storageRemove</code> Swift'te handle edilmiyor</td>
+  <td><code>pxe-bridge-shim.js:174</code>, <code>PXEBridge.swift:335-358</code></td>
+  <td>JS tarafinda <code>chrome.storage.*.remove()</code> cagirildiginda Swift <code>"remove"</code> action'ini sessizce ignore ediyor. Callback sonsuza kadar bekler, memory leak olusur.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.7</span></td>
+  <td>JSON parse crash (uncaught)</td>
+  <td><code>pxe-bridge-shim.js:223</code></td>
+  <td><code>_receiveFromSwift</code> icinde ilk <code>JSON.parse</code> try/catch disinda. Malformed JSON geldiginde hata handler'a ulasmadan crash olur.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.8</span></td>
+  <td>Force-unwrap crash</td>
+  <td><code>NetworkManager.swift:160</code></td>
+  <td><code>URL(string: ...)!</code> &mdash; gecersiz URL karakterleri varsa uygulama crash olur.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.9</span></td>
+  <td>Orphaned Keychain entry</td>
+  <td><code>WalletStore.swift:479-484, 572-578</code></td>
+  <td>Deploy oncesi <code>pk_0x000...000_pending</code> key'i Keychain'e kaydediliyor. Deploy sonrasi gercek adresle yeni entry olusturuluyor ama eski entry silinmiyor.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.10</span></td>
+  <td>Sessiz key kaybi</td>
+  <td><code>PXEPersistenceManager.swift:16</code></td>
+  <td><code>try? KeychainManager.load()</code> hata verdiginde (sadece "not found" degil, gercek hata) sessizce yeni key uretiliyor. Mevcut encrypted snapshot'lar okunamaz hale gelir.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.11</span></td>
+  <td>68MB JS bundle bellek tuketimi</td>
+  <td><code>WalletStore.swift:220</code></td>
+  <td>WKWebView'da 68MB bundle + WASM: 200-400MB bellek. Eski iPhone'larda (2-3GB RAM) WebContent process jettison edilebilir.</td>
+</tr>
+<tr>
+  <td><span class="severity-high">3.12</span></td>
+  <td>HTTP body size limiti yok</td>
+  <td><code>deploy-server.ts:335-340</code></td>
+  <td><code>readBody()</code> sinirsiz okuyor. Multi-GB body gondererek server crash ettirilebilir.</td>
+</tr>
+</table>
+
+<!-- SECTION 4 -->
+<div class="page-break"></div>
+<h2>4. Orta Seviye Sorunlar</h2>
+
+<table>
+<tr><th>#</th><th>Sorun</th><th>Dosya</th></tr>
+<tr>
+  <td><span class="severity-medium">4.1</span></td>
+  <td>ECDSA S-value malleability kontrolu yok</td>
+  <td><code>main.nr:125-130</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.2</span></td>
+  <td>P256 public key nokta-egri-uzerinde dogrulamasi yok</td>
+  <td><code>main.nr:42-43</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.3</span></td>
+  <td>PasskeyManager 0x04 byte scan false positive</td>
+  <td><code>PasskeyManager.swift:143-153</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.4</span></td>
+  <td>Transfer endpoint aslinda mint yapiyor</td>
+  <td><code>deploy-server.ts:288-308</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.5</span></td>
+  <td>Navigation: flat state machine, geri tusu dashboard'a gidiyor</td>
+  <td><code>RootView.swift</code>, <code>SubHeaderView.swift:10</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.6</span></td>
+  <td>Dynamic Type destegi yok &mdash; 7-8pt font boyutlari</td>
+  <td><code>CelariTheme.swift:56-57</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.7</span></td>
+  <td>QR code her render'da yeniden uretiliyor (CIContext)</td>
+  <td><code>ReceiveView.swift:72-83</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.8</span></td>
+  <td>GrainOverlay her render'da farkli random pattern</td>
+  <td><code>ViewModifiers.swift:57-73</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.9</span></td>
+  <td>Blocking PBKDF2 (600K iteration) main thread'de</td>
+  <td><code>BackupManager.swift:77-107</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.10</span></td>
+  <td><code>chrome.storage.session</code> kalici &mdash; semantik hata</td>
+  <td><code>pxe-bridge-shim.js:194-204</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.11</span></td>
+  <td>Token.id = symbol &mdash; SwiftUI list collision</td>
+  <td><code>Token.swift</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.12</span></td>
+  <td>BackupView sadece aktif hesabi yedekliyor</td>
+  <td><code>BackupView.swift:76-82</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.13</span></td>
+  <td>SendForm state navigasyon sonrasi temizlenmiyor</td>
+  <td><code>DashboardView.swift:39-41</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.14</span></td>
+  <td>NFT transfer adres dogrulamasi yok</td>
+  <td><code>NftDetailView.swift:104, 121-137</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.15</span></td>
+  <td>fetch() polyfill hardcoded WASM MIME type</td>
+  <td><code>pxe-bridge-shim.js:54</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.16</span></td>
+  <td>Storage callback memory leak &mdash; timeout yok</td>
+  <td><code>pxe-bridge-shim.js:145-192</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.17</span></td>
+  <td>No TLS certificate pinning</td>
+  <td><code>NetworkManager.swift</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.18</span></td>
+  <td>Nargo.toml v3.0.2 vs package.json 3.0.3 mismatch</td>
+  <td><code>Nargo.toml</code>, <code>package.json</code></td>
+</tr>
+<tr>
+  <td><span class="severity-medium">4.19</span></td>
+  <td>Test.nr pub_key_y BN254 modulus asimi</td>
+  <td><code>test.nr:23</code></td>
+</tr>
+</table>
+
+<!-- SECTION 5 -->
+<div class="page-break"></div>
+<h2>5. Core Katman Detayli Analiz</h2>
+
+<h3>5.1 Mimari Genel Bakis</h3>
+<p>Core katman hub-and-spoke mimarisi kullanir. <code>WalletStore</code> merkezi state yoneticisi olarak calisir:</p>
+<ul>
+  <li><strong>WalletStore.swift</strong> &mdash; 740+ satir, @Observable merkezi state container. Navigation, accounts, tokens, NFTs, WC sessions, network config ve UI state yonetir.</li>
+  <li><strong>PXEBridge.swift</strong> &mdash; Swift-WKWebView koprusu. Aztec PXE ile cift yonlu JS iletisimi. Request/response pattern (messageId + continuation).</li>
+  <li><strong>PasskeyManager.swift</strong> &mdash; Actor. WebAuthn passkey olusturma/dogrulama. AuthenticationServices framework kullanimi. Simulator'de mock key fallback.</li>
+  <li><strong>KeychainManager.swift</strong> &mdash; Static utility. iOS Keychain CRUD. Biometric-protected items (SecAccessControl + .biometryCurrentSet).</li>
+  <li><strong>BackupManager.swift</strong> &mdash; AES-256-GCM encrypted backup/restore. PBKDF2 key derivation (600K iterations, SHA-256).</li>
+  <li><strong>PXEPersistenceManager.swift</strong> &mdash; PXE snapshot encrypt/persist. Keychain-stored symmetric key.</li>
+  <li><strong>NetworkManager.swift</strong> &mdash; Actor. JSON-RPC, connection check, account verification, balance fetching.</li>
+</ul>
+
+<h3>5.2 Guclu Yonler</h3>
+<ul>
+  <li>Temiz sorumluluk ayrimi (dedicated manager types)</li>
+  <li>Swift concurrency dogru kullanimi (async/await, actor for NetworkManager/PasskeyManager)</li>
+  <li>Privacy-aware logging (os.log Logger, .public annotations)</li>
+  <li>PBKDF2 600K iterations &mdash; guncel OWASP onerileriyle uyumlu</li>
+  <li>Idempotent WebView setup</li>
+  <li>Uygun timeout degerleri (ZK proof icin 20 dakikaya kadar)</li>
+</ul>
+
+<h3>5.3 Zayif Yonler</h3>
+<ul>
+  <li><strong>God Object:</strong> WalletStore 740+ satir &mdash; navigation, state, persistence, account lifecycle, balance, deploy, demo mode, toast hepsini yonetiyor</li>
+  <li><strong>Tutarsiz thread-safety:</strong> NetworkManager/PasskeyManager actor, ama PXEBridge/WalletStore plain class</li>
+  <li><strong>Karisik logging:</strong> print() (PasskeyManager) vs Logger</li>
+  <li><strong>Sessiz hata yutma:</strong> try? ile hatalar 12+ yerde sessizce yok ediliyor</li>
+  <li><strong>Magic string'ler:</strong> "PXE_INIT", "PXE_TRANSFER", "pxeBridge" &mdash; enum/constant olmali</li>
+</ul>
+
+<!-- SECTION 6 -->
+<div class="page-break"></div>
+<h2>6. Views Katman Detayli Analiz</h2>
+
+<h3>6.1 UI/UX Sorunlari</h3>
+<ul>
+  <li><strong>Navigasyon:</strong> Tek bir <code>store.screen</code> enum &mdash; geri-stack yok, swipe-back yok, deep linking yok</li>
+  <li><strong>SubHeaderView:</strong> Geri tusu her zaman <code>.dashboard</code>'a gidiyor &mdash; Settings &rarr; AddAccount &rarr; Back = Dashboard (Settings'e donmuyor)</li>
+  <li><strong>"+" butonu:</strong> NFTs/Activity tab'inda da <code>.addToken</code>'a gidiyor</li>
+  <li><strong>Font boyutlari:</strong> <code>monoLabel</code> 8pt, <code>monoTiny</code> 7pt &mdash; Apple minimum 11pt oneriyor</li>
+  <li><strong>Touch target:</strong> 32x32pt &mdash; Apple HIG minimum 44x44pt</li>
+</ul>
+
+<h3>6.2 Eksik State'ler</h3>
+<ul>
+  <li>Balance fetching icin loading indicator yok</li>
+  <li>Balance fetch hatasi icin error state yok</li>
+  <li>Network switch icin loading yok</li>
+  <li>Baglanti kesildiginde dashboard'da uyari yok</li>
+  <li>QR uretimi basarisiz olursa fallback yok</li>
+</ul>
+
+<h3>6.3 Erisilebilirlik</h3>
+<ul>
+  <li>Dynamic Type destegi yok (tum fontlar sabit boyut)</li>
+  <li>Icon butonlarda accessibilityLabel yok</li>
+  <li>Renk-tabanli gizlilik gostergesi (renk koru kullanicilar icin sorunlu)</li>
+  <li>Toast mesajlari VoiceOver'a duyurulmuyor</li>
+  <li>Secili hesap VoiceOver'da isSelected trait'i yok</li>
+</ul>
+
+<!-- SECTION 7 -->
+<div class="page-break"></div>
+<h2>7. PXE Bridge ve Polyfill Analizi</h2>
+
+<h3>7.1 Kopru Mimarisi</h3>
+<p>iOS uygulamasi PXE'yi katmanli bir WKWebView sistemi uzerinden calistirir:</p>
+<ol>
+  <li><strong>PXEBridge.swift:</strong> 1x1 gizli WKWebView olusturur, script'leri enjekte eder</li>
+  <li><strong>pxe-bridge-shim.js:</strong> Chrome API polyfill'leri (<code>chrome.runtime</code>, <code>chrome.storage</code>, Worker, fetch)</li>
+  <li><strong>buffer-polyfill.js:</strong> Node.js Buffer polyfill (feross/buffer)</li>
+  <li><strong>pxe-bridge.html:</strong> ESM module olarak <code>offscreen.js</code> yukler</li>
+  <li><strong>offscreen.js:</strong> ~69MB minified bundle (Aztec PXE + WASM)</li>
+</ol>
+
+<h3>7.2 Shim Sorunlari</h3>
+<ul>
+  <li><code>storageRemove</code> Swift'te handle edilmiyor &mdash; callback sonsuza kadar askida</li>
+  <li><code>chrome.storage.session</code> ile <code>chrome.storage.local</code> ayni UserDefaults &mdash; namespace collision</li>
+  <li>Storage callback'ler icin timeout yok &mdash; memory leak</li>
+  <li><code>_receiveFromSwift</code> JSON'u iki kez parse ediyor, ilki try/catch disinda</li>
+  <li>fetch() polyfill tum dosyalar icin <code>application/wasm</code> MIME type donduruyor</li>
+  <li>Worker polyfill hemen error firlatiyor &mdash; SDK fallback'ine bagli</li>
+</ul>
+
+<h3>7.3 offscreen.js Durumu</h3>
+<p>iOS Resources'taki offscreen.js <strong>dogru iOS build'i</strong> (safari17 target, ESM format). Ancak kaynak kodu Chrome-centric pattern'ler iceriyor ve tamamen shim uyumluluguna dayanior.</p>
+<p><strong>Yeniden build icin:</strong> <code>node extension/build.mjs --ios</code></p>
+
+<!-- SECTION 8 -->
+<div class="page-break"></div>
+<h2>8. Noir Kontrat ve Script Analizi</h2>
+
+<h3>8.1 CelariPasskeyAccount Kontrati</h3>
+<p>P256/secp256r1 imza dogrulamasi yapan ozel Noir account contract. Aztec'in AccountActions framework'u uzerine insa edilmis.</p>
+
+<h4>Kontrat Guvenlik Bulgulari</h4>
+<ul>
+  <li><span class="severity-medium">Orta</span> <strong>S-value malleability:</strong> Her gecerli (r, s) imzasi icin (r, n-s) de gecerlidir. Kontrat bunu kontrol etmiyor.</li>
+  <li><span class="severity-medium">Orta</span> <strong>Point-on-curve dogrulama yok:</strong> Constructor gecersiz public key'i kabul eder &mdash; kullanicinin deploy ucreti bos yere harcanir.</li>
+  <li><span class="severity-low">Dusuk</span> <strong>Auth witness Field truncation:</strong> <code>witness[i] as u8</code> &mdash; 255'ten buyuk Field sessizce truncate olabilir.</li>
+  <li><span class="severity-low">Dusuk</span> <strong>#[noinitcheck]:</strong> entrypoint ve verify_private_authwit constructor'dan once cagrilabilir.</li>
+</ul>
+
+<h4>PublicKeyNote Packable Implementasyonu</h4>
+<p>Byte ordering dogru: 31 byte big-endian packing, son byte ayri saklanma. BN254 field sinirlari icinde. Ancak fragile &mdash; yorum eksik.</p>
+
+<h3>8.2 Deploy Script Sorunlari</h3>
+<ul>
+  <li><span class="severity-critical">Kritik</span> Private key HTTP response'da donduruluyor</li>
+  <li><span class="severity-high">Yuksek</span> Deploy/transfer/faucet endpoint'lerinde authentication yok</li>
+  <li><span class="severity-medium">Orta</span> Transfer endpoint aslinda <code>mint_to_public</code> cagrisiyor &mdash; <code>from</code> parametresi ignore ediliyor</li>
+  <li><span class="severity-medium">Orta</span> Request body size limiti yok</li>
+  <li><span class="severity-low">Dusuk</span> Faucet rate limiting memory-only &mdash; restart ile sifirlanir</li>
+  <li><span class="severity-low">Dusuk</span> Bazi scriptlerde hardcoded node URL</li>
+</ul>
+
+<!-- SECTION 9 -->
+<div class="page-break"></div>
+<h2>9. Azguard Wallet Karsilastirmasi</h2>
+
+<p><strong>Azguard Wallet</strong>, Baking Bad ekibi tarafindan gelistirilen Aztec Network icin Chrome browser extension cuzdanidir. 8 yillik blockchain deneyimi, $100K Aztec Foundation hibesi, MIT lisanslama.</p>
+
+<table>
+<tr><th>Boyut</th><th>Azguard</th><th>Celari</th><th>Avantaj</th></tr>
+<tr>
+  <td>Platform</td>
+  <td>Sadece Chrome Extension</td>
+  <td>iOS + Extension + SDK + Website</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+<tr>
+  <td>Auth yontemi</td>
+  <td>Schnorr (seed phrase)</td>
+  <td>P256 Passkey (biyometrik)</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+<tr>
+  <td>iOS uygulamasi</td>
+  <td>Yok</td>
+  <td>SwiftUI, 15+ ekran</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+<tr>
+  <td>Donanim guvenligi</td>
+  <td>Yok (Ledger planlaniyor)</td>
+  <td>Secure Enclave</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+<tr>
+  <td>NFT destegi</td>
+  <td>Yok</td>
+  <td>Var</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+<tr>
+  <td>PXE persistence</td>
+  <td>Browser storage</td>
+  <td>Encrypted snapshot/restore</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+<tr>
+  <td>AA kontrat cesitliligi</td>
+  <td>Schnorr, ECDSA-K, multi-owner</td>
+  <td>Sadece P256 passkey</td>
+  <td><span class="badge-azguard">Azguard</span></td>
+</tr>
+<tr>
+  <td>Kisi yonetimi</td>
+  <td>Var</td>
+  <td>Yok</td>
+  <td><span class="badge-azguard">Azguard</span></td>
+</tr>
+<tr>
+  <td>Otomatik kilit</td>
+  <td>Var</td>
+  <td>Yok</td>
+  <td><span class="badge-azguard">Azguard</span></td>
+</tr>
+<tr>
+  <td>Authwit goruntuleme</td>
+  <td>Var</td>
+  <td>Yok</td>
+  <td><span class="badge-azguard">Azguard</span></td>
+</tr>
+<tr>
+  <td>Side panel</td>
+  <td>Var</td>
+  <td>Yok</td>
+  <td><span class="badge-azguard">Azguard</span></td>
+</tr>
+<tr>
+  <td>Ekip deneyimi</td>
+  <td>8 yil, $100K hibe</td>
+  <td>Daha kucuk ekip</td>
+  <td><span class="badge-azguard">Azguard</span></td>
+</tr>
+<tr>
+  <td>Privacy felsefesi</td>
+  <td>"Privacy is the foundation"</td>
+  <td>"Privacy is architecture"</td>
+  <td><span class="badge-equal">Esit</span></td>
+</tr>
+<tr>
+  <td>Backup sistemi</td>
+  <td>3 yontem (detay yok)</td>
+  <td>AES-256-GCM, PBKDF2, cross-platform</td>
+  <td><span class="badge-celari">Celari</span></td>
+</tr>
+</table>
+
+<h3>9.1 Celari'nin Benzersiz Avantajlari</h3>
+<ol>
+  <li><strong>Aztec'te ilk iOS native wallet</strong> &mdash; hicbir rakipte yok</li>
+  <li><strong>Passkey-native mimari</strong> &mdash; kontrat seviyesinde P256 dogrulama</li>
+  <li><strong>Secure Enclave</strong> &mdash; key cikarilmaz, hardware-bound</li>
+  <li><strong>PXE snapshot persistence</strong> &mdash; mobilde kritik</li>
+</ol>
+
+<h3>9.2 Azguard'dan Ogrenilecekler</h3>
+<ol>
+  <li><strong>Kisi defteri (address book)</strong> &mdash; dusuk efor, yuksek etki</li>
+  <li><strong>Otomatik kilit timeout</strong> &mdash; guvenlik icin sart</li>
+  <li><strong>Authwit gorunturlugu</strong> &mdash; kullanici izin farkindligi</li>
+  <li><strong>Aztec Foundation hibe basvurusu</strong> &mdash; $100K potansiyeli</li>
+  <li><strong>Side panel modu</strong> &mdash; extension UX iyilestirme</li>
+</ol>
+
+<h3>9.3 Rekabet Ortami</h3>
+<p>Aztec wallet ekosistemi hala erken asamada (Subat 2026):</p>
+<ul>
+  <li><strong>Azguard</strong> (Baking Bad) &mdash; Browser extension, Schnorr-based, en olgun</li>
+  <li><strong>Celari</strong> &mdash; iOS + extension, passkey-native, custom Noir contract</li>
+  <li><strong>Obsidion</strong> (Zpoken) &mdash; Passkey + email login, web-based</li>
+  <li><strong>Shinami</strong> &mdash; aztec-wallet-sdk (gelistirici araci)</li>
+</ul>
+<p>Aztec token ($AZTEC) yeni lansman yapti, mainnet aktivitesi basliyor &mdash; wallet pazari acik.</p>
+
+<!-- SECTION 10 -->
+<div class="page-break"></div>
+<h2>10. Oncelikli Aksiyon Plani</h2>
+
+<div class="action-plan">
+<h4>Acil &mdash; Bu Hafta</h4>
+<ol>
+  <li><strong>WebAuthn imza uyumsuzlugunu coz</strong> &mdash; Noir kontrati WebAuthn formatini destekleyecek sekilde guncelle veya auth witness'a authenticatorData/clientDataJSON ekle</li>
+  <li><strong>PXEBridge thread-safety</strong> &mdash; pendingCallbacks'i @MainActor izolasyonuna al, continuation'i Optional wrapper ile sar</li>
+  <li><strong>Account struct'indan secretKey/privateKeyPkcs8 sil</strong> &mdash; bu degerler sadece Keychain'de saklanmali, UserDefaults'tan temizle</li>
+  <li><strong>evaluateJavaScript &rarr; callAsyncJavaScript migration</strong> &mdash; JS injection onleme</li>
+  <li><strong>offscreen.js yeniden build</strong> &mdash; <code>node extension/build.mjs --ios</code></li>
+</ol>
+</div>
+
+<div class="action-plan">
+<h4>Kisa Vade &mdash; Bu Ay</h4>
+<ol start="6">
+  <li>Transfer/backup oncesi biometric dogrulama ekle</li>
+  <li>AddAccountView'i duzelt (Keychain + passkey akisi)</li>
+  <li>WalletStore'u @MainActor yap</li>
+  <li>Deploy server'dan private key dondurmekten vazgec</li>
+  <li>Navigation stack implementasyonu (NavigationPath)</li>
+  <li>ConfirmTxView: activity kaydet + balance refresh</li>
+  <li>storageRemove handler'i Swift'e ekle</li>
+</ol>
+</div>
+
+<div class="action-plan">
+<h4>Orta Vade &mdash; Bu Ceyrek</h4>
+<ol start="13">
+  <li>Kisi defteri (address book) ekle</li>
+  <li>Auto-lock timeout implementasyonu</li>
+  <li>Dynamic Type destegi</li>
+  <li>Accessibility iyilestirmeleri (labels, traits, VoiceOver)</li>
+  <li>TLS certificate pinning</li>
+  <li>S-value malleability kontrolu Noir kontrata ekle</li>
+  <li>WalletStore decomposition (daha kucuk manager'lara bol)</li>
+</ol>
+</div>
+
+<hr>
+<p style="text-align:center; color:#888; font-size:9pt; margin-top:30px;">
+  Celari Wallet Denetim Raporu &bull; 23 Subat 2026 &bull; Claude Code (Opus 4.6)<br>
+  <em>"Your transactions speak zero."</em>
+</p>
+
+</body>
+</html>

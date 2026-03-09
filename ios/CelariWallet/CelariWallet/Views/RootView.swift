@@ -40,6 +40,10 @@ struct RootView: View {
                     WalletConnectView()
                 case .wcApprove:
                     WcApproveView()
+                case .guardianSetup:
+                    GuardianSetupView()
+                case .recoverAccount:
+                    RecoverAccountView()
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: store.screen)

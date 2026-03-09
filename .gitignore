@@ -11,6 +11,7 @@ web-ext-artifacts/
 .celari-keys.json
 .celari-passkey-account.json
 .celari-token.json
+.celari-bridge-l2.json
 .zkpay-keys.json
 .zkpay-passkey-account.json
 .env
@@ -26,7 +27,9 @@ sdk/dist/
 ios/**/build/
 ios/**/xcuserdata/
 ios/**/DerivedData/
+ios/**/gzip-backup/
 ios/CelariWallet/CelariWallet/Resources/offscreen.js
+ios/CelariWallet/CelariWallet/Resources/offscreen.js.gz
 
 # Website (separate repo)
 website/
@@ -42,6 +45,14 @@ ios/**/PXE_BRIDGE_PROGRESS_REPORT.md
 
 # Claude
 .claude/
+
+# Backups and archives
+*.bak*
+logo.zip
+logo/
+
+# Service node_modules
+services/**/node_modules/
 
 # OS
 .DS_Store

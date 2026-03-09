@@ -93,6 +93,14 @@
       return result.state?.connected || false;
     },
 
+    /**
+     * Get withdraw proof for L1 claim.
+     * Returns { success, proof: { blockNumber, leafIndex, path } }
+     */
+    async getWithdrawProof(l2TxHash) {
+      return sendRequest("GET_WITHDRAW_PROOF", { l2TxHash });
+    },
+
     /** Listen for account/network changes */
     on(event, callback) {
       window.addEventListener("message", (e) => {

@@ -9,7 +9,7 @@
  *   This file owns the PXE lifecycle and all Aztec SDK interactions.
  */
 
-import { TestWallet } from "@aztec/test-wallet/client/lazy";
+import { EmbeddedWallet } from "@aztec/wallets/embedded";
 import { createAztecNodeClient } from "@aztec/aztec.js/node";
 import { Fr } from "@aztec/aztec.js/fields";
 import { AztecAddress } from "@aztec/aztec.js/addresses";
@@ -22,9 +22,24 @@ import { jsonStringify } from "@aztec/foundation/json-rpc";
 import { WalletSchema, AccountManager } from "@aztec/aztec.js/wallet";
 import { deriveKeys } from "@aztec/stdlib/keys";
 
-// Contract artifact (compiled Noir → JSON)
+// Contract artifacts (compiled Noir → JSON)
 import CelariPasskeyAccountArtifactJson from "../../../contracts/celari_passkey_account/target/celari_passkey_account-CelariPasskeyAccount.json" with { type: "json" };
 const CelariPasskeyAccountArtifact = loadContractArtifact(CelariPasskeyAccountArtifactJson);
+
+// Guardian Recovery contract artifact — static import (esbuild inlines JSON),
+// but loadContractArtifact() is deferred until first use.
+import CelariRecoverableAccountArtifactJson from "../../../contracts/celari_recoverable_account/target/celari_recoverable_account-CelariRecoverableAccount.json" with { type: "json" };
+let CelariRecoverableAccountArtifact = null;
+function getRecoveryArtifact() {
+  if (CelariRecoverableAccountArtifact) return CelariRecoverableAccountArtifact;
+  try {
+    CelariRecoverableAccountArtifact = loadContractArtifact(CelariRecoverableAccountArtifactJson);
+    return CelariRecoverableAccountArtifact;
+  } catch (e) {
+    console.warn("[PXE] CelariRecoverableAccount artifact load failed (recovery disabled):", e.message);
+    return null;
+  }
+}
 
 // --- In-Memory KV Store for iOS ---
 // WKWebView's IndexedDB crashes on PXE block sync transactions.
@@ -243,7 +258,7 @@ async function setupSponsoredFPC(walletInstance) {
 
 // --- State ---
 
-let wallet = null;       // TestWallet instance (wraps PXE)
+let wallet = null;       // EmbeddedWallet instance (wraps PXE)
 let nodeClient = null;   // AztecNode client (for wallet-sdk protocol)
 let kvStore = null;       // MemoryAztecStore reference (iOS only — for snapshot persistence)
 let pxeReady = false;
@@ -453,14 +468,17 @@ async function initPXE(nodeUrl) {
   if (isIOS) console.log("[PXE] iOS detected — proverEnabled: true (main-thread proving, no Workers)");
 
   // ── Inline createPXE steps with granular logging ──
-  // (Replaces TestWallet.create to diagnose which step hangs in WKWebView)
+  // (Replaces EmbeddedWallet.create to diagnose which step hangs in WKWebView)
   const { createPXE, getPXEConfig } = await import("@aztec/pxe/client/lazy");
   const pxeConfig = Object.assign(getPXEConfig(), { proverEnabled });
 
   initStep = "Fetching L1 contract addresses...";
   console.log("[PXE] Step A: getL1ContractAddresses (network)...");
   const t_l1 = Date.now();
-  const l1Contracts = await node.getL1ContractAddresses();
+  const l1Contracts = await Promise.race([
+    node.getL1ContractAddresses(),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("getL1ContractAddresses timed out after 30s — is the Aztec node reachable?")), 30000)),
+  ]);
   console.log("[PXE] Step A: OK (" + (Date.now() - t_l1) + "ms)");
 
   const configWithContracts = { ...pxeConfig, l1Contracts };
@@ -469,71 +487,85 @@ async function initPXE(nodeUrl) {
   console.log("[PXE] Step B: Creating KV store...");
   const t_store = Date.now();
   let store;
-  if (isIOS) {
-    // iOS: In-memory store — no IndexedDB, no WKWebView crashes
-    console.log("[PXE] Step B: iOS — using in-memory KV store (bypassing IndexedDB)");
-    store = new MemoryAztecStore();
-    kvStore = store; // Keep reference for snapshot persistence
-    // Store rollup address (equivalent to initStoreForRollup)
-    if (l1Contracts.rollupAddress) {
-      const rollupSingleton = store.openSingleton('rollupAddress');
-      await rollupSingleton.set(l1Contracts.rollupAddress.toString());
-    }
-    console.log("[PXE] Step B: In-memory store OK (" + (Date.now() - t_store) + "ms)");
-  } else {
-    // Chrome: Normal IndexedDB store
-    const { createStore } = await import("@aztec/kv-store/indexeddb");
-    store = await Promise.race([
-      createStore("pxe_data", configWithContracts),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("createStore timed out after 60s")), 60000)),
-    ]);
-    console.log("[PXE] Step B: IndexedDB store OK (" + (Date.now() - t_store) + "ms)");
+  // Use in-memory store for both iOS and Chrome — IndexedDB causes
+  // "transaction not active" errors during async SDK operations in Chrome extensions.
+  // Data re-syncs each session anyway.
+  console.log("[PXE] Step B: Using in-memory KV store");
+  store = new MemoryAztecStore();
+  kvStore = store;
+  if (l1Contracts.rollupAddress) {
+    const rollupSingleton = store.openSingleton('rollupAddress');
+    await rollupSingleton.set(l1Contracts.rollupAddress.toString());
   }
+  console.log("[PXE] Step B: In-memory store OK (" + (Date.now() - t_store) + "ms)");
 
   // iOS: Pre-initialize Barretenberg in direct WASM mode (no Workers).
   // WKWebView doesn't support Web Workers. Barretenberg.initSingleton() is cached —
   // by initializing first with BackendType.Wasm, the prover's later call to
   // initSingleton() reuses this no-Worker instance instead of trying to create Workers.
-  if (isIOS) {
-    console.log("[PXE] Step C0: Pre-initializing Barretenberg (direct WASM, no Workers)...");
-    const t_bb = Date.now();
-    const { Barretenberg, BackendType } = await import("@aztec/bb.js");
-    await Barretenberg.initSingleton({ backend: BackendType.Wasm, threads: 1 });
-    console.log("[PXE] Step C0: Barretenberg singleton ready (" + (Date.now() - t_bb) + "ms)");
-  }
+  // Pre-initialize Barretenberg in direct WASM mode (single-threaded).
+  // Chrome offscreen documents have Worker restrictions similar to iOS WKWebView.
+  console.log("[PXE] Step C0: Pre-initializing Barretenberg (direct WASM, no Workers)...");
+  const t_bb = Date.now();
+  const { Barretenberg, BackendType } = await import("@aztec/bb.js");
+  await Barretenberg.initSingleton({ backend: BackendType.Wasm, threads: 1 });
+  console.log("[PXE] Step C0: Barretenberg singleton ready (" + (Date.now() - t_bb) + "ms)");
 
   initStep = "Loading WASM prover engine...";
   reportProgress("WASM prover yükleniyor...");
   console.log("[PXE] Step C: WASMSimulator + Prover...");
   const t_sim = Date.now();
-  const { WASMSimulator } = await import("@aztec/simulator/client");
+  const [{ WASMSimulator }, { BBLazyPrivateKernelProver }] = await Promise.race([
+    Promise.all([
+      import("@aztec/simulator/client"),
+      import("@aztec/bb-prover/client/lazy"),
+    ]),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("WASM prover import timed out after 90s")), 90000)),
+  ]);
   const simulator = new WASMSimulator();
-  const { BBLazyPrivateKernelProver } = await import("@aztec/bb-prover/client/lazy");
   const prover = new BBLazyPrivateKernelProver(simulator);
   console.log("[PXE] Step C: OK (" + (Date.now() - t_sim) + "ms)");
 
   initStep = "Loading protocol contracts...";
   console.log("[PXE] Step D: LazyProtocolContractsProvider...");
   const t_pcp = Date.now();
-  const { LazyProtocolContractsProvider } = await import("@aztec/protocol-contracts/providers/lazy");
+  const { LazyProtocolContractsProvider } = await Promise.race([
+    import("@aztec/protocol-contracts/providers/lazy"),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("Protocol contracts import timed out after 30s")), 30000)),
+  ]);
   const protocolContractsProvider = new LazyProtocolContractsProvider();
   console.log("[PXE] Step D: OK (" + (Date.now() - t_pcp) + "ms)");
 
-  // Step E removed: PXE.create was creating a PXE that competed with TestWallet's internal PXE
+  // Step E removed: PXE.create was creating a PXE that competed with EmbeddedWallet's internal PXE
   // for the same IndexedDB store, causing "delete range without transaction" errors on WKWebView.
-  // TestWallet.create() below creates its own PXE using the shared store, simulator, and prover.
+  // EmbeddedWallet.create() below creates its own PXE using the shared store, simulator, and prover.
 
   initStep = "Starting PXE wallet engine...";
   reportProgress("PXE wallet başlatılıyor...");
-  console.log("[PXE] Step E: Creating TestWallet (single PXE with shared store)...");
+  console.log("[PXE] Step E: Creating EmbeddedWallet (single PXE with shared store)...");
   const t_pxe = Date.now();
   wallet = await Promise.race([
-    TestWallet.create(node, pxeConfig, { store, simulator, prover }),
-    new Promise((_, rej) => setTimeout(() => rej(new Error("TestWallet.create timed out after 4 min")), 240000)),
+    EmbeddedWallet.create(node, { pxeConfig, pxeOptions: { store, simulator, proverOrOptions: prover } }),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("EmbeddedWallet.create timed out after 4 min")), 240000)),
   ]);
-  console.log("[PXE] Step E: OK (" + (Date.now() - t_pxe) + "ms) — TestWallet ready");
+  console.log("[PXE] Step E: OK (" + (Date.now() - t_pxe) + "ms) — EmbeddedWallet ready");
 
-  const info = await wallet.getChainInfo();
+  // Override getAccountFromAddress so CelariPasskey accounts (custom contract)
+  // are resolved via AccountManager instead of WalletDB (which only knows built-in types).
+  const _origGetAccount = wallet.getAccountFromAddress.bind(wallet);
+  wallet.getAccountFromAddress = async function (addr) {
+    const entry = accountWallets.get(addr.toString());
+    if (entry?.manager) {
+      const acct = await entry.manager.getAccount();
+      if (acct) return acct;
+    }
+    return _origGetAccount(addr);
+  };
+
+  const info = await Promise.race([
+    wallet.getChainInfo(),
+    new Promise((_, rej) => setTimeout(() => rej(new Error("getChainInfo timed out after 15s")), 15000)),
+  ]);
   console.log(`[PXE] Connected — Chain ${info.chainId}, Protocol v${info.version}`);
 
   // NOTE: SponsoredFPC setup removed from init — it calls registerContract() which
@@ -581,24 +613,27 @@ async function registerAccount(data) {
     privateKeyPkcs8,
   );
 
-  const manager = await wallet.createAccount({
-    secret: Fr.fromHexString(secretKey),
-    salt: Fr.fromHexString(salt),
-    contract: accountContract,
-  });
+  const secretKeyFr = Fr.fromHexString(secretKey);
+  const manager = await AccountManager.create(wallet, secretKeyFr, accountContract, Fr.fromHexString(salt));
 
   const address = manager.address.toString();
   const accountAddr = AztecAddress.fromString(address);
 
+  // Register the account contract with the PXE (critical for re-registration after restart).
+  try {
+    console.log(`[PXE] Registering contract instance with PXE...`);
+    const instance = manager.getInstance();
+    await wallet.registerContract(instance, CelariPasskeyAccountArtifact, secretKeyFr);
+    console.log(`[PXE] Contract registered OK`);
+  } catch (err) {
+    console.warn(`[PXE] Contract registration warning (may already exist): ${err.message}`);
+  }
+
   // Force PXE to discover the account contract's notes (especially signing_public_key).
-  // TestWallet.createAccount() calls registerContract() → pxe.registerAccount() → addScope(),
-  // but PXE note discovery only happens when sync_private_state is explicitly simulated.
-  // Without this, the first transaction attempt fails because the signing_public_key note
-  // hasn't been discovered yet, causing auth witness verification to fail in the Noir circuit.
   try {
     console.log(`[PXE] Triggering note sync for account contract...`);
     const t0 = Date.now();
-    await wallet.getNotes({ contractAddress: accountAddr });
+    await wallet.pxe.debug.getNotes({ contractAddress: accountAddr });
     console.log(`[PXE] Note sync completed OK (${Date.now() - t0}ms)`);
   } catch (err) {
     console.warn(`[PXE] Note sync warning (non-fatal): ${err.message}`);
@@ -611,7 +646,7 @@ async function registerAccount(data) {
       if (prop === 'getAddress') {
         return () => AztecAddress.fromString(address);
       }
-      // Everything else → TestWallet (PXE + internal account dispatch)
+      // Everything else → EmbeddedWallet (PXE + internal account dispatch)
       const val = target[prop];
       return typeof val === 'function' ? val.bind(target) : val;
     }
@@ -660,33 +695,34 @@ async function executeTransfer(data) {
   console.log(`[PXE] acctWallet type: ${acctWallet?.constructor?.name || 'Proxy'}`);
   console.log(`[PXE] acctWallet.getAddress(): ${acctWallet.getAddress().toString().slice(0, 22)}...`);
 
-  let tx;
-  const sendOpts = { from: senderAddr, fee: { paymentMethod } };
+  let sendResult;
+  const sendOpts = { from: senderAddr, fee: { paymentMethod }, wait: { timeout: 600_000 } };
+  reportProgress("Blok onayı bekleniyor...");
   switch (transferType) {
     case "private":
       // Private-to-private: caller's private notes → recipient's private note
-      tx = await token.methods
+      sendResult = await token.methods
         .transfer(recipientAddr, rawAmount)
         .send(sendOpts);
       break;
 
     case "public":
       // Public-to-public: transfer_in_public(from, to, amount, authwit_nonce)
-      tx = await token.methods
+      sendResult = await token.methods
         .transfer_in_public(senderAddr, recipientAddr, rawAmount, 0)
         .send(sendOpts);
       break;
 
     case "shield":
       // Public → Private: move caller's public balance into recipient's private notes
-      tx = await token.methods
+      sendResult = await token.methods
         .transfer_to_private(recipientAddr, rawAmount)
         .send(sendOpts);
       break;
 
     case "unshield":
       // Private → Public: transfer_to_public(from, to, amount, authwit_nonce)
-      tx = await token.methods
+      sendResult = await token.methods
         .transfer_to_public(senderAddr, recipientAddr, rawAmount, 0)
         .send(sendOpts);
       break;
@@ -695,16 +731,14 @@ async function executeTransfer(data) {
       throw new Error(`Unknown transfer type: ${transferType}`);
   }
 
-  const txHash = await tx.getTxHash();
-  console.log(`[PXE] Tx: ${txHash.toString().slice(0, 22)}... — proving + waiting...`);
-
-  reportProgress("Blok onayı bekleniyor...");
-  const receipt = await tx.wait({ timeout: 600_000 }); // 7 min — proof + block on iOS
+  // In 4.1.0-rc.2, send() with wait returns { receipt: TxReceipt, ...OffchainOutput }
+  const receipt = sendResult.receipt;
+  console.log(`[PXE] Tx: ${receipt.txHash.toString().slice(0, 22)}...`);
   console.log(`[PXE] Confirmed! Block ${receipt.blockNumber}`);
 
   reportProgress(null);
   return {
-    txHash: txHash.toString(),
+    txHash: receipt.txHash.toString(),
     blockNumber: receipt.blockNumber?.toString() || "",
   };
 }
@@ -719,7 +753,7 @@ async function ensureBalanceAccount() {
     // Always create a dedicated Schnorr test account for balance queries.
     // Real passkey accounts are incompatible with enableSimulatedSimulations().
     console.log("[PXE] Balance: creating test account for balance queries...");
-    const mgr = await wallet.createAccount();
+    const mgr = await wallet.createSchnorrAccount(Fr.random(), Fr.random());
     balanceFromAddress = mgr.address;
     console.log(`[PXE] Balance: test account created — ${balanceFromAddress.toString().slice(0, 20)}...`);
   } catch (e) {
@@ -733,9 +767,9 @@ async function getBalances(data) {
   const { address, tokens } = data;
   if (!tokens || tokens.length === 0) return [];
 
-  // Ensure a test account exists and simulated mode is enabled
+  // Ensure a test account exists for balance queries
+  // (EmbeddedWallet in 4.1.0-rc.2 handles simulation internally via simulateViaEntrypoint)
   await ensureBalanceAccount();
-  wallet.enableSimulatedSimulations();
 
   const results = [];
   const { TokenContract } = await import("@aztec/noir-contracts.js/Token");
@@ -764,18 +798,21 @@ async function getBalances(data) {
       const tokenForPublic = await TokenContract.at(tokenAddr, wallet);
 
       // Step 2: Query public balance (from: test account to avoid getAccountFromAddress crash)
+      // In 4.1.0-rc.2, simulate() returns SimulationResult { result, stats?, ... }
       console.log(`[PXE] Balance: querying public balance for ${tk.symbol}...`);
-      const publicBal = await tokenForPublic.methods.balance_of_public(addr).simulate({ from: balanceFromAddress });
+      const publicSim = await tokenForPublic.methods.balance_of_public(addr).simulate({ from: balanceFromAddress });
+      const publicBal = publicSim.result !== undefined ? publicSim.result : publicSim;
       console.log(`[PXE] Balance: public balance OK — ${publicBal}`);
       const publicBalance = Number(publicBal) / 10 ** tk.decimals;
 
       let privateBalance = 0;
       if (getActiveWallet()) {
         try {
-          // Use TestWallet (not AccountWithSecretKey) — it has simulateUtility()
+          // Use EmbeddedWallet (not AccountWithSecretKey) — it has simulateViaEntrypoint()
           // needed for unconstrained balance_of_private queries
           const tokenForPrivate = await TokenContract.at(tokenAddr, wallet);
-          const privateBal = await tokenForPrivate.methods.balance_of_private(addr).simulate({ from: balanceFromAddress });
+          const privateSim = await tokenForPrivate.methods.balance_of_private(addr).simulate({ from: balanceFromAddress });
+          const privateBal = privateSim.result !== undefined ? privateSim.result : privateSim;
           privateBalance = Number(privateBal) / 10 ** tk.decimals;
           console.log(`[PXE] Balance: private balance OK — ${privateBal}`);
         } catch (e) {
@@ -808,8 +845,7 @@ async function getBalances(data) {
     }
   }
 
-  // Restore normal simulation mode for other operations
-  wallet.disableSimulatedSimulations();
+  // In 4.1.0-rc.2, EmbeddedWallet handles simulation mode internally — no toggle needed
   return { balances: results };
 }
 
@@ -837,6 +873,22 @@ async function deployAccountClientSide(data) {
   console.log(`[PXE] >>> deployAccountClientSide ENTERED`);
   if (!wallet) throw new Error("PXE not initialized");
 
+  // Force PXE block sync before deploy to get fresh anchor block header
+  console.log("[PXE] Deploy Step 0: Syncing PXE block state...");
+  const t0 = Date.now();
+  try {
+    if (wallet.pxe.blockStateSynchronizer?.sync) {
+      await wallet.pxe.blockStateSynchronizer.sync();
+      console.log(`[PXE] Deploy Step 0: block sync OK (${Date.now() - t0}ms)`);
+    } else {
+      // Fallback: just fetch latest header to confirm connectivity
+      const header = await wallet.pxe.getSyncedBlockHeader();
+      console.log(`[PXE] Deploy Step 0: header fetched OK (${Date.now() - t0}ms), timestamp: ${header?.globalVariables?.timestamp}`);
+    }
+  } catch (e) {
+    console.warn(`[PXE] Deploy Step 0: sync failed (${Date.now() - t0}ms) -- ${e.message}, continuing anyway...`);
+  }
+
   const { publicKeyX, publicKeyY, privateKeyPkcs8 } = data;
   console.log(`[PXE] pubKeyX: ${publicKeyX?.slice(0,16)}..., pkcs8: ${privateKeyPkcs8 ? 'present' : 'MISSING'}`);
 
@@ -856,8 +908,8 @@ async function deployAccountClientSide(data) {
   let manager;
   try {
     manager = await Promise.race([
-      wallet.createAccount({ secret: secretKey, salt, contract: accountContract }),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("createAccount timed out after 3 min")), 180000)),
+      AccountManager.create(wallet, secretKey, accountContract, salt),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("AccountManager.create timed out after 3 min")), 180000)),
     ]);
     console.log(`[PXE] Deploy Step 1: OK (${Date.now() - t1}ms) -- address: ${manager.address.toString().slice(0, 22)}...`);
   } catch (e) {
@@ -866,6 +918,18 @@ async function deployAccountClientSide(data) {
   }
 
   const address = manager.address;
+
+  // Step 1b: Register account + contract with PXE (v4.0.4 requirement)
+  console.log("[PXE] Deploy Step 1b: registerAccount + registerContract...");
+  const t1b = Date.now();
+  try {
+    const instance = manager.getInstance();
+    await wallet.registerContract(instance, CelariPasskeyAccountArtifact, secretKey);
+    console.log(`[PXE] Deploy Step 1b: OK (${Date.now() - t1b}ms)`);
+  } catch (e) {
+    console.error(`[PXE] Deploy Step 1b: FAILED (${Date.now() - t1b}ms) -- ${e.message}`);
+    throw e;
+  }
 
   // Step 2: SponsoredFPC
   reportProgress("Fee ödeme ayarlanıyor...");
@@ -899,28 +963,33 @@ async function deployAccountClientSide(data) {
     return r;
   };
 
-  // Step 4: send
+  // Step 4: send + wait (prove is the slowest part — may take minutes in WASM)
   reportProgress("Deploy tx gönderiliyor...");
-  console.log("[PXE] Deploy Step 4: deployMethod.send()...");
+  console.log("[PXE] Deploy Step 4: deployMethod.send() + wait...");
+  console.log("[PXE] (proving may take several minutes in WKWebView WASM...)");
   const t4 = Date.now();
-  const sentTx = deployMethod.send({
-    from: AztecAddress.ZERO,
-    fee: { paymentMethod },
-  });
-  console.log(`[PXE] Deploy Step 4: send() returned (${Date.now() - t4}ms)`);
-
-  // Step 5: getTxHash
-  console.log("[PXE] Deploy Step 5: getTxHash...");
-  const t5 = Date.now();
-  const txHash = await sentTx.getTxHash();
-  console.log(`[PXE] Deploy Step 5: txHash: ${txHash.toString().slice(0, 22)}... (${Date.now() - t5}ms)`);
-
-  // Step 6: wait for inclusion
-  reportProgress("Blok onayı bekleniyor...");
-  console.log("[PXE] Deploy Step 6: waiting for block inclusion (timeout 7 min)...");
-  const t6 = Date.now();
-  const receipt = await sentTx.wait({ timeout: 600_000 });
-  console.log(`[PXE] Deploy Step 6: Deployed! Block ${receipt.blockNumber} (${Date.now() - t6}ms total)`);
+  // Log periodic progress while waiting
+  const progressTimer = setInterval(() => {
+    const elapsed = Math.round((Date.now() - t4) / 1000);
+    console.log(`[PXE] Deploy Step 4: still running... ${elapsed}s elapsed`);
+    reportProgress(`Deploy tx işleniyor... (${elapsed}s)`);
+  }, 15000);
+  let txReceipt;
+  try {
+    const sendResult = await deployMethod.send({
+      from: AztecAddress.ZERO,
+      fee: { paymentMethod },
+      wait: { timeout: 900_000, returnReceipt: true },
+    });
+    clearInterval(progressTimer);
+    // In 4.1.0-rc.2, send() with wait returns { receipt: TxReceipt, ...OffchainOutput }
+    txReceipt = sendResult.receipt;
+    console.log(`[PXE] Deploy Step 4: txHash: ${txReceipt.txHash.toString().slice(0, 22)}... Deployed! Block ${txReceipt.blockNumber} (${Date.now() - t4}ms)`);
+  } catch (e) {
+    clearInterval(progressTimer);
+    console.error(`[PXE] Deploy Step 4: FAILED (${Date.now() - t4}ms) -- ${e.message}`);
+    throw e;
+  }
 
   reportProgress("Hesap deploy edildi ✓");
 
@@ -943,8 +1012,8 @@ async function deployAccountClientSide(data) {
     address: addrStr,
     secretKey: secretKey.toString(),
     salt: salt.toString(),
-    txHash: txHash.toString(),
-    blockNumber: receipt.blockNumber?.toString() || "",
+    txHash: txReceipt.txHash.toString(),
+    blockNumber: txReceipt.blockNumber?.toString() || "",
   };
 }
 
@@ -955,11 +1024,16 @@ const FAUCET_AMOUNT = 100n * 10n ** 18n; // 100 CLR
 const FAUCET_COOLDOWN_MS = 2 * 60 * 1000; // 2 minutes (dev/test)
 let lastFaucetTime = 0;
 
-// Restore faucet rate limit from storage on load
+// Restore faucet rate limit via background.js
 (async () => {
   try {
-    const stored = await chrome.storage.local.get("celari_last_faucet");
-    if (stored.celari_last_faucet) lastFaucetTime = stored.celari_last_faucet;
+    const res = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: "GET_FAUCET_RATE" }, (r) => {
+        void chrome.runtime.lastError;
+        resolve(r);
+      });
+    });
+    if (res?.lastFaucetTime) lastFaucetTime = res.lastFaucetTime;
   } catch {}
 })();
 
@@ -978,29 +1052,31 @@ async function executeFaucet(data) {
   const { TokenContract } = await import("@aztec/noir-contracts.js/Token");
   const { paymentMethod } = await setupSponsoredFPC(wallet);
 
-  // Try loading cached admin from chrome.storage.local
+  // Try loading cached admin via background.js (offscreen has no chrome.storage)
   if (!faucetAdmin) {
     try {
-      const stored = await chrome.storage.local.get("celari_faucet_admin");
-      if (stored.celari_faucet_admin) {
-        const info = stored.celari_faucet_admin;
+      const cached = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "GET_FAUCET_CACHE" }, (res) => {
+          void chrome.runtime.lastError;
+          resolve(res?.data || null);
+        });
+      });
+      if (cached?.secret && cached?.tokenAddress) {
         const mgr = await wallet.createSchnorrAccount(
-          Fr.fromHexString(info.secret),
-          Fr.fromHexString(info.salt),
+          Fr.fromHexString(cached.secret),
+          Fr.fromHexString(cached.salt),
         );
         const adminAddr = mgr.address;
-        const tokenAddr = AztecAddress.fromString(info.tokenAddress);
+        const tokenAddr = AztecAddress.fromString(cached.tokenAddress);
 
-        // TokenContract.at() verifies the contract exists on-chain;
-        // if not deployed, it throws → catch sets faucetAdmin = null → re-deploy path
         const clrToken = await TokenContract.at(tokenAddr, wallet);
-        faucetAdmin = { adminAddr, clrToken, tokenAddress: info.tokenAddress };
+        faucetAdmin = { adminAddr, clrToken, tokenAddress: cached.tokenAddress };
         console.log(`[PXE] Faucet admin loaded from cache: ${adminAddr.toString().slice(0, 22)}...`);
         console.log(`[PXE] Token contract verified on-chain ✓`);
       }
     } catch (e) {
       console.warn(`[PXE] Faucet cache load failed: ${e.message?.slice(0, 60)}`);
-      faucetAdmin = null; // Force re-deploy if cache/verification fails
+      faucetAdmin = null;
     }
   }
 
@@ -1016,24 +1092,25 @@ async function executeFaucet(data) {
 
     console.log(`[PXE] Deploying faucet admin ${adminAddr.toString().slice(0, 22)}...`);
     reportProgress("Admin hesap deploy ediliyor... (1/3)");
-    const adminTx = await (await mgr.getDeployMethod()).send({
+    reportProgress("Admin tx onayı bekleniyor... (1/3)");
+    await (await mgr.getDeployMethod()).send({
       from: AztecAddress.ZERO,
       fee: { paymentMethod },
+      wait: { timeout: 600_000 },
     });
-    reportProgress("Admin tx onayı bekleniyor... (1/3)");
-    await adminTx.wait({ timeout: 600_000 }); // 10 min — testnet block times vary
     console.log("[PXE] Faucet admin deployed!");
 
     // Retry token deploy — PXE block stream may not have synced the admin's
     // signing key note yet (getTxReceipt checks the node, not PXE local state).
     console.log("[PXE] Deploying CLR token...");
     reportProgress("CLR Token deploy ediliyor... (2/3)");
-    let tokenTx, receipt;
+    let deployedToken;
     for (let attempt = 0; attempt < 6; attempt++) {
       try {
         const tokenDeploy = TokenContract.deploy(wallet, adminAddr, "Celari Token", "CLR", 18);
-        tokenTx = await tokenDeploy.send({ from: adminAddr, fee: { paymentMethod } });
-        receipt = await tokenTx.wait({ timeout: 600_000 }); // 10 min — testnet block times vary
+        const deployResult = await tokenDeploy.send({ from: adminAddr, fee: { paymentMethod }, wait: { timeout: 600_000 } });
+        // In 4.1.0-rc.2, DeployMethod.send() returns { contract, receipt, ...OffchainOutput }
+        deployedToken = deployResult.contract;
         break;
       } catch (e) {
         if (attempt < 5 && e.message?.includes("Failed to get a note")) {
@@ -1044,20 +1121,21 @@ async function executeFaucet(data) {
         }
       }
     }
-    const tokenAddress = receipt.contract.address.toString();
+    const tokenAddress = deployedToken.address.toString();
 
-    const clrToken = await TokenContract.at(receipt.contract.address, wallet);
+    const clrToken = deployedToken;
     faucetAdmin = { adminAddr, clrToken, tokenAddress };
 
-    // Cache for next time
-    await chrome.storage.local.set({
-      celari_faucet_admin: {
+    // Cache via background.js (offscreen has no chrome.storage)
+    chrome.runtime.sendMessage({
+      type: "SET_FAUCET_CACHE",
+      data: {
         secret: secret.toString(),
         salt: salt.toString(),
         tokenAddress,
         adminAddress: adminAddr.toString(),
       },
-    });
+    }, () => void chrome.runtime.lastError);
 
     console.log(`[PXE] Faucet setup complete! Token: ${tokenAddress.slice(0, 22)}...`);
   }
@@ -1067,24 +1145,21 @@ async function executeFaucet(data) {
   console.log(`[PXE] Faucet: minting 100 CLR to ${address.slice(0, 22)}...`);
   reportProgress("100 CLR mint ediliyor... (3/3)");
 
-  const tx = await faucetAdmin.clrToken.methods
-    .mint_to_public(to, FAUCET_AMOUNT)
-    .send({ from: faucetAdmin.adminAddr, fee: { paymentMethod } });
-
-  const txHash = await tx.getTxHash();
-  console.log(`[PXE] Faucet tx: ${txHash.toString().slice(0, 22)}... — waiting...`);
   reportProgress("Mint tx onayı bekleniyor... (3/3)");
+  const mintResult = await faucetAdmin.clrToken.methods
+    .mint_to_public(to, FAUCET_AMOUNT)
+    .send({ from: faucetAdmin.adminAddr, fee: { paymentMethod }, wait: { timeout: 600_000 } });
+  const mintReceipt = mintResult.receipt;
 
-  const receipt = await tx.wait({ timeout: 600_000 }); // 7 min — proof + block on iOS
   lastFaucetTime = Date.now();
-  // Persist rate limit so it survives SW restarts
-  chrome.storage.local.set({ celari_last_faucet: lastFaucetTime });
+  // Persist rate limit via background.js
+  chrome.runtime.sendMessage({ type: "SET_FAUCET_RATE", lastFaucetTime }, () => void chrome.runtime.lastError);
 
-  console.log(`[PXE] Faucet done! Block ${receipt.blockNumber}`);
+  console.log(`[PXE] Faucet done! Block ${mintReceipt.blockNumber}`);
   reportProgress(null); // Clear status bar
   return {
-    txHash: txHash.toString(),
-    blockNumber: receipt.blockNumber?.toString() || "",
+    txHash: mintReceipt.txHash.toString(),
+    blockNumber: mintReceipt.blockNumber?.toString() || "",
     amount: "100",
     symbol: "CLR",
     tokenAddress: faucetAdmin.tokenAddress,
@@ -1135,7 +1210,7 @@ function hexToBuffer(hex) {
 // --- Wallet-SDK Method Dispatcher ---
 // Handles standard Aztec wallet-sdk method calls from dApps.
 // Delegates to acctWallet (AccountWithSecretKey) for account-scoped methods,
-// and to wallet (TestWallet) for PXE-level methods.
+// and to wallet (EmbeddedWallet) for PXE-level methods.
 
 async function handleWalletMethod(method, args) {
   if (!wallet) throw new Error("PXE not initialized");
@@ -1184,7 +1259,7 @@ async function handleWalletMethod(method, args) {
       return await acctWallet[method](...args);
     }
 
-    // simulateUtility: unconstrained function calls — use TestWallet (has PXE methods)
+    // simulateUtility: unconstrained function calls — use EmbeddedWallet (has PXE methods)
     case "simulateUtility":
       return await wallet.simulateUtility(...args);
 
@@ -1207,7 +1282,8 @@ async function handleWalletMethod(method, args) {
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   console.log(`[PXE] Handler received: type=${msg?.type}, keys=${msg ? Object.keys(msg).join(',') : 'null'}`);
-  if (!msg || !msg.type?.startsWith("PXE_")) return false;
+  // Only process messages relayed through background.js (tagged with _target)
+  if (!msg || !msg.type?.startsWith("PXE_") || msg._target !== "offscreen") return false;
   console.log(`[PXE] Processing ${msg.type}...`);
 
   const handle = async () => {
@@ -1344,9 +1420,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           kvStore = restoredStore;
           console.log(`[PXE] Snapshot: deserialized OK (${Date.now() - t}ms)`);
 
-          // Re-create PXE/TestWallet with restored store
+          // Re-create PXE/EmbeddedWallet with restored store
           if (nodeClient) {
-            console.log("[PXE] Snapshot: re-creating TestWallet with restored store...");
+            console.log("[PXE] Snapshot: re-creating EmbeddedWallet with restored store...");
             const t2 = Date.now();
             const { getPXEConfig } = await import("@aztec/pxe/client/lazy");
             const pxeConfig = Object.assign(getPXEConfig(), { proverEnabled: true });
@@ -1354,13 +1430,12 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
             const simulator = new WASMSimulator();
             const { BBLazyPrivateKernelProver } = await import("@aztec/bb-prover/client/lazy");
             const prover = new BBLazyPrivateKernelProver(simulator);
-            wallet = await TestWallet.create(nodeClient, pxeConfig, {
-              store: restoredStore,
-              simulator,
-              prover,
+            wallet = await EmbeddedWallet.create(nodeClient, {
+              pxeConfig,
+              pxeOptions: { store: restoredStore, simulator, proverOrOptions: prover },
             });
             pxeReady = true;
-            console.log(`[PXE] Snapshot: TestWallet restored OK (${Date.now() - t2}ms)`);
+            console.log(`[PXE] Snapshot: EmbeddedWallet restored OK (${Date.now() - t2}ms)`);
           }
           return { restored: true, sizeBytes: snapshot.length };
         }
@@ -1387,8 +1462,9 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
               let hasMore = true;
               while (hasMore) {
                 try {
-                  const result = await nft.methods.get_private_nfts(ownerAz, page).simulate();
-                  const tokenIds = Array.isArray(result) ? result : (result?.token_ids || []);
+                  const simResult = await nft.methods.get_private_nfts(ownerAz, page).simulate();
+                  const rawResult = simResult.result !== undefined ? simResult.result : simResult;
+                  const tokenIds = Array.isArray(rawResult) ? rawResult : (rawResult?.token_ids || []);
                   const filtered = tokenIds.filter(id => id && id.toString() !== "0");
                   for (const tokenId of filtered) {
                     allNfts.push({
@@ -1424,27 +1500,27 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           const tokenIdBig = BigInt(tokenId);
           const nonceVal = nonce ? Fr.fromString(nonce) : Fr.ZERO;
 
-          let tx;
+          const sendOpts = { from: fromAddr, wait: { timeout: 600_000 } };
+          let nftResult;
           switch (mode) {
             case "private":
-              tx = await nft.methods.transfer_in_private(fromAddr, toAddr, tokenIdBig, nonceVal).send();
+              nftResult = await nft.methods.transfer_in_private(fromAddr, toAddr, tokenIdBig, nonceVal).send(sendOpts);
               break;
             case "public":
-              tx = await nft.methods.transfer_in_public(fromAddr, toAddr, tokenIdBig, nonceVal).send();
+              nftResult = await nft.methods.transfer_in_public(fromAddr, toAddr, tokenIdBig, nonceVal).send(sendOpts);
               break;
             case "shield":
-              tx = await nft.methods.transfer_to_private(toAddr, tokenIdBig).send();
+              nftResult = await nft.methods.transfer_to_private(toAddr, tokenIdBig).send(sendOpts);
               break;
             case "unshield":
-              tx = await nft.methods.transfer_to_public(fromAddr, toAddr, tokenIdBig, nonceVal).send();
+              nftResult = await nft.methods.transfer_to_public(fromAddr, toAddr, tokenIdBig, nonceVal).send(sendOpts);
               break;
             default:
               return { error: `Unknown NFT transfer mode: ${mode}` };
           }
 
-          const txHash = await tx.getTxHash();
-          const receipt = await tx.wait({ timeout: 600_000 }); // 7 min — proof + block on iOS
-          return { txHash: txHash.toString(), blockNumber: receipt.blockNumber?.toString() || "" };
+          const nftReceipt = nftResult.receipt;
+          return { txHash: nftReceipt.txHash.toString(), blockNumber: nftReceipt.blockNumber?.toString() || "" };
         }
 
         // ─── WalletConnect ───────────────────────────────
@@ -1525,6 +1601,149 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
           return { sessions };
         }
 
+        // ─── Guardian Recovery ────────────────────────────
+        case "PXE_SETUP_GUARDIANS": {
+          const recoveryArtifact = getRecoveryArtifact();
+          if (!recoveryArtifact) return { error: "Recovery contract not available — recompile needed" };
+          const acctWallet = getActiveWallet();
+          if (!acctWallet) throw new Error("No active account");
+
+          const { guardianHash0, guardianHash1, guardianHash2, threshold, cidPart1, cidPart2 } = msg.data;
+
+          reportProgress("Guardian kontrati hazirlaniyor...");
+          const { Contract } = await import("@aztec/aztec.js");
+          const contract = await Contract.at(acctWallet.getAddress(), recoveryArtifact, acctWallet);
+
+          reportProgress("Fee odeme ayarlaniyor...");
+          const { paymentMethod } = await setupSponsoredFPC(acctWallet);
+
+          reportProgress("Guardian setup tx gonderiliyor...");
+          reportProgress("Blok onayi bekleniyor...");
+          const guardianResult = await contract.methods
+            .setup_guardians(
+              Fr.fromString(guardianHash0),
+              Fr.fromString(guardianHash1),
+              Fr.fromString(guardianHash2),
+              Fr.fromString(String(threshold)),
+              Fr.fromString(cidPart1),
+              Fr.fromString(cidPart2),
+            )
+            .send({ from: acctWallet.getAddress(), fee: { paymentMethod }, wait: { timeout: 600_000 } });
+
+          const guardianReceipt = guardianResult.receipt;
+          console.log(`[PXE] setup_guardians OK — block ${guardianReceipt.blockNumber}`);
+          return { success: true, txHash: guardianReceipt.txHash?.toString() };
+        }
+
+        case "PXE_INITIATE_RECOVERY": {
+          const recoveryArtifact = getRecoveryArtifact();
+          if (!recoveryArtifact) return { error: "Recovery contract not available — recompile needed" };
+          // Note: Recovery is initiated by someone WITHOUT the current signing key.
+          // This is a public function, callable by anyone.
+          // For now, we use the current wallet; in production, a new ephemeral wallet is needed.
+          if (!wallet) throw new Error("PXE not initialized");
+
+          const { newKeyX, newKeyY, guardianKeyA, guardianKeyB } = msg.data;
+
+          reportProgress("Recovery kontrati hazirlaniyor...");
+          const { Contract } = await import("@aztec/aztec.js");
+          // Use the base wallet (not account-specific) for public calls
+          const accountAddr = AztecAddress.fromString(msg.data.accountAddress || activeAddress);
+          const contract = await Contract.at(accountAddr, recoveryArtifact, wallet);
+
+          reportProgress("Fee odeme ayarlaniyor...");
+          const { paymentMethod } = await setupSponsoredFPC(wallet);
+
+          reportProgress("Recovery tx gonderiliyor...");
+          reportProgress("Blok onayi bekleniyor...");
+          const recoveryInitResult = await contract.methods
+            .initiate_recovery(
+              Fr.fromString(newKeyX),
+              Fr.fromString(newKeyY),
+              Fr.fromString(guardianKeyA),
+              Fr.fromString(guardianKeyB),
+            )
+            .send({ from: AztecAddress.ZERO, fee: { paymentMethod }, wait: { timeout: 600_000 } });
+
+          const recoveryInitReceipt = recoveryInitResult.receipt;
+          console.log(`[PXE] initiate_recovery OK — block ${recoveryInitReceipt.blockNumber}`);
+          return { success: true, txHash: recoveryInitReceipt.txHash?.toString() };
+        }
+
+        case "PXE_EXECUTE_RECOVERY": {
+          const recoveryArtifact = getRecoveryArtifact();
+          if (!recoveryArtifact) return { error: "Recovery contract not available — recompile needed" };
+          const acctWallet = getActiveWallet();
+          if (!acctWallet) throw new Error("No active account");
+
+          const { newKeyX, newKeyY } = msg.data;
+
+          reportProgress("Recovery tamamlaniyor...");
+          const { Contract } = await import("@aztec/aztec.js");
+          const contract = await Contract.at(acctWallet.getAddress(), recoveryArtifact, acctWallet);
+
+          const { paymentMethod } = await setupSponsoredFPC(acctWallet);
+
+          // Convert hex key coordinates to byte arrays [u8; 32]
+          const keyXBytes = hexToBuffer(newKeyX);
+          const keyYBytes = hexToBuffer(newKeyY);
+
+          reportProgress("Blok onayi bekleniyor...");
+          const execRecoveryResult = await contract.methods
+            .execute_recovery(Array.from(keyXBytes), Array.from(keyYBytes))
+            .send({ from: acctWallet.getAddress(), fee: { paymentMethod }, wait: { timeout: 600_000 } });
+
+          const execRecoveryReceipt = execRecoveryResult.receipt;
+          console.log(`[PXE] execute_recovery OK — block ${execRecoveryReceipt.blockNumber}`);
+          return { success: true, txHash: execRecoveryReceipt.txHash?.toString() };
+        }
+
+        case "PXE_CANCEL_RECOVERY": {
+          const recoveryArtifact = getRecoveryArtifact();
+          if (!recoveryArtifact) return { error: "Recovery contract not available — recompile needed" };
+          const acctWallet = getActiveWallet();
+          if (!acctWallet) throw new Error("No active account");
+
+          reportProgress("Recovery iptal ediliyor...");
+          const { Contract } = await import("@aztec/aztec.js");
+          const contract = await Contract.at(acctWallet.getAddress(), recoveryArtifact, acctWallet);
+
+          const { paymentMethod } = await setupSponsoredFPC(acctWallet);
+          reportProgress("Blok onayi bekleniyor...");
+          const cancelResult = await contract.methods.cancel_recovery()
+            .send({ from: acctWallet.getAddress(), fee: { paymentMethod }, wait: { timeout: 600_000 } });
+
+          const cancelReceipt = cancelResult.receipt;
+          console.log(`[PXE] cancel_recovery OK — block ${cancelReceipt.blockNumber}`);
+          return { success: true, txHash: cancelReceipt.txHash?.toString() };
+        }
+
+        case "PXE_IS_GUARDIAN_CONFIGURED": {
+          const recoveryArtifact = getRecoveryArtifact();
+          if (!recoveryArtifact) return { configured: false };
+          const acctWallet = getActiveWallet();
+          if (!acctWallet) throw new Error("No active account");
+
+          const { Contract } = await import("@aztec/aztec.js");
+          const contract = await Contract.at(acctWallet.getAddress(), recoveryArtifact, acctWallet);
+          const guardianSim = await contract.methods.is_guardian_configured().simulate();
+          const guardianConfigured = guardianSim.result !== undefined ? guardianSim.result : guardianSim;
+          return { configured: !!guardianConfigured };
+        }
+
+        case "PXE_GET_RECOVERY_CID": {
+          const recoveryArtifact = getRecoveryArtifact();
+          if (!recoveryArtifact) return { cidPart1: "0", cidPart2: "0" };
+          const acctWallet = getActiveWallet();
+          if (!acctWallet) throw new Error("No active account");
+
+          const { Contract } = await import("@aztec/aztec.js");
+          const contract = await Contract.at(acctWallet.getAddress(), recoveryArtifact, acctWallet);
+          const cidSim = await contract.methods.get_recovery_cid().simulate();
+          const cidResult = cidSim.result !== undefined ? cidSim.result : cidSim;
+          return { cidPart1: cidResult[0]?.toString() || "0", cidPart2: cidResult[1]?.toString() || "0" };
+        }
+
         default:
           return { error: `Unknown PXE command: ${msg.type}` };
       }
@@ -1537,10 +1756,13 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   };
 
   handle()
-    .then(r => { console.log(`[PXE] ${msg.type} completed OK`); sendResponse(r); })
-    .catch(e => { console.error(`[PXE] ${msg.type} UNHANDLED:`, e?.message || e); sendResponse({ error: e?.message || String(e) }); });
+    .then(r => { console.log(`[PXE] ${msg.type} completed OK`); sendResponse({ success: true, ...r }); })
+    .catch(e => { console.error(`[PXE] ${msg.type} UNHANDLED:`, e?.message || e); sendResponse({ success: false, error: e?.message || String(e) }); });
   return true; // Keep message channel open for async response
 });
+
+// Disable early banner listener now that real listener is registered
+if (typeof __pxeEarlyReady !== "undefined") __pxeEarlyReady = true;
 
 // Signal to background that offscreen listener is active
 chrome.runtime.sendMessage({ type: "OFFSCREEN_READY" }, () => {

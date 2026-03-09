@@ -1,6 +1,6 @@
 #!/usr/bin/env npx tsx
 /**
- * Deploy CLR token using TestWallet's own Schnorr account as admin,
+ * Deploy CLR token using EmbeddedWallet's own Schnorr account as admin,
  * then mint to our passkey account.
  */
 
@@ -11,7 +11,7 @@ import { fileURLToPath } from "url";
 import { createAztecNodeClient } from "@aztec/aztec.js/node";
 import { Fr } from "@aztec/aztec.js/fields";
 import { AztecAddress } from "@aztec/aztec.js/addresses";
-import { TestWallet } from "@aztec/test-wallet/server";
+import { EmbeddedWallet } from "@aztec/wallets/embedded";
 
 import { setupSponsoredFPC } from "./lib/aztec-helpers.js";
 
@@ -27,9 +27,9 @@ async function main() {
   // Connect with a fresh Schnorr account as admin
   console.log("Connecting...");
   const node = createAztecNodeClient(NODE_URL);
-  const wallet = await TestWallet.create(node, { proverEnabled: true });
+  const wallet = await EmbeddedWallet.create(node, { pxeConfig: { proverEnabled: true } });
 
-  // Create a Schnorr admin account (TestWallet can sign for these natively)
+  // Create a Schnorr admin account (EmbeddedWallet can sign for these natively)
   const adminManager = await wallet.createSchnorrAccount(Fr.random(), Fr.random());
   const adminAddress = adminManager.address;
   console.log(`Admin (Schnorr): ${adminAddress.toString().slice(0, 22)}...`);
@@ -40,13 +40,12 @@ async function main() {
   const { paymentMethod } = await setupSponsoredFPC(wallet);
 
   const adminDeployMethod = await adminManager.getDeployMethod();
-  const adminTx = await adminDeployMethod.send({
+  const adminReceipt = await adminDeployMethod.send({
     from: AztecAddress.ZERO,
     fee: { paymentMethod },
+    wait: { timeout: 180_000, returnReceipt: true },
   });
-  const adminTxHash = await adminTx.getTxHash();
-  console.log(`Admin deploy tx: ${adminTxHash.toString().slice(0, 22)}...`);
-  await adminTx.wait({ timeout: 180_000 });
+  console.log(`Admin deploy tx: ${adminReceipt.txHash.toString().slice(0, 22)}...`);
   console.log("Admin deployed!");
 
   // Deploy Token with admin = Schnorr account
@@ -61,29 +60,20 @@ async function main() {
     18,
   );
 
-  const tokenTx = await tokenDeploy.send({
+  const token = await tokenDeploy.send({
     from: adminAddress,
     fee: { paymentMethod },
+    wait: { timeout: 180_000 },
   });
-  const tokenTxHash = await tokenTx.getTxHash();
-  console.log(`Token deploy tx: ${tokenTxHash.toString().slice(0, 22)}...`);
-
-  const tokenReceipt = await tokenTx.wait({ timeout: 180_000 });
-  const tokenAddress = tokenReceipt.contract.address;
-  console.log(`Token deployed! Block: ${tokenReceipt.blockNumber}`);
-  console.log(`Token: ${tokenAddress.toString()}`);
+  const tokenAddress = token.address;
+  console.log(`Token deployed at: ${tokenAddress.toString()}`);
 
   // Mint to our passkey account
   console.log("\nMinting 10,000 CLR...");
-  const token = await TokenContract.at(tokenAddress, wallet);
 
-  const mintTx = await token.methods
+  const mintReceipt = await token.methods
     .mint_to_public(accountAddress, 10_000n * 10n ** 18n)
-    .send({ from: adminAddress, fee: { paymentMethod } });
-  const mintTxHash = await mintTx.getTxHash();
-  console.log(`Mint tx: ${mintTxHash.toString().slice(0, 22)}...`);
-
-  const mintReceipt = await mintTx.wait({ timeout: 180_000 });
+    .send({ from: adminAddress, fee: { paymentMethod }, wait: { timeout: 180_000 } });
   console.log(`Minted! Block: ${mintReceipt.blockNumber}`);
 
   // Check balance (best-effort, simulate may fail on some SDK versions)
@@ -104,7 +94,7 @@ async function main() {
     admin: adminAddress.toString(),
     holderAddress: accountAddress.toString(),
     network: "testnet",
-    deployBlock: tokenReceipt.blockNumber?.toString(),
+    deployBlock: "",
     mintBlock: mintReceipt.blockNumber?.toString(),
     deployedAt: new Date().toISOString(),
   };

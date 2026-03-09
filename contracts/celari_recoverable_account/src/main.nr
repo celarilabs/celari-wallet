@@ -30,7 +30,7 @@ pub contract CelariRecoverableAccount {
         authwit::{account::AccountActions, entrypoint::app::AppPayload},
         context::PrivateContext,
         macros::{
-            functions::{external, initializer, noinitcheck, nophasecheck, view},
+            functions::{allow_phase_change, external, initializer, noinitcheck, view},
             storage::storage,
         },
         messages::message_delivery::MessageDelivery,
@@ -98,7 +98,7 @@ pub contract CelariRecoverableAccount {
         unsafe { set_sender_for_tags(self.address) };
 
         self.storage.signing_public_key.at(self.address).initialize(pub_key_note).deliver(
-            MessageDelivery.CONSTRAINED_ONCHAIN,
+            MessageDelivery.ONCHAIN_CONSTRAINED,
         );
 
         // Safety: Same as above
@@ -108,7 +108,7 @@ pub contract CelariRecoverableAccount {
     // Main transaction entrypoint -- identical to v1.
     #[external("private")]
     #[noinitcheck]
-    #[nophasecheck]
+    #[allow_phase_change]
     fn entrypoint(app_payload: AppPayload, fee_payment_method: u8, cancellable: bool) {
         // Safety: sender for tags is unconstrained tagging only
         unsafe { set_sender_for_tags(self.address) };
@@ -147,7 +147,7 @@ pub contract CelariRecoverableAccount {
         cid_part2: Field,
     ) {
         // Only the account itself can set guardians
-        assert(self.context.msg_sender().unwrap() == self.address, "Only account owner");
+        assert(self.context.maybe_msg_sender().unwrap() == self.address, "Only account owner");
 
         // Guardians can only be set once (immutable after setup)
         assert(!self.storage.guardians_configured.read(), "Guardians already configured");
@@ -271,7 +271,7 @@ pub contract CelariRecoverableAccount {
     #[noinitcheck]
     fn reset_recovery_state() {
         // Only callable by self (via enqueue)
-        assert(self.context.msg_sender().unwrap() == self.address, "Only self");
+        assert(self.context.maybe_msg_sender().unwrap() == self.address, "Only self");
 
         self.storage.pending_key_x.write(0);
         self.storage.pending_key_y.write(0);
@@ -299,7 +299,7 @@ pub contract CelariRecoverableAccount {
         // that the time-lock has passed and the provided key matches.
         let new_key = PublicKeyNote { x: new_key_x, y: new_key_y };
         self.storage.signing_public_key.at(self.address).replace(|_old| new_key).deliver(
-            MessageDelivery.CONSTRAINED_ONCHAIN,
+            MessageDelivery.ONCHAIN_CONSTRAINED,
         );
 
         // Enqueue time-lock verification + state cleanup.
@@ -318,7 +318,7 @@ pub contract CelariRecoverableAccount {
     #[noinitcheck]
     fn verify_and_clear_recovery(expected_key_x: Field, expected_key_y: Field) {
         // Only callable by self
-        assert(self.context.msg_sender().unwrap() == self.address, "Only self");
+        assert(self.context.maybe_msg_sender().unwrap() == self.address, "Only self");
 
         // Recovery must be active
         assert(self.storage.recovery_active.read(), "No active recovery");
@@ -358,7 +358,7 @@ pub contract CelariRecoverableAccount {
 
         let new_key = PublicKeyNote { x: new_pub_key_x, y: new_pub_key_y };
         self.storage.signing_public_key.at(self.address).replace(|_old| new_key).deliver(
-            MessageDelivery.CONSTRAINED_ONCHAIN,
+            MessageDelivery.ONCHAIN_CONSTRAINED,
         );
     }
 

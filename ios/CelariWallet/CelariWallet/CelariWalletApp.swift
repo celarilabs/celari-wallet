@@ -8,10 +8,10 @@ struct CelariWalletApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView()
+            RootViewV2()
                 .environment(store)
                 .environment(pxeBridge)
-                .preferredColorScheme(.dark)
+                .preferredColorScheme(.light)
                 .onAppear {
                     pxeBridge.store = store
                     pxeBridge.setupWebView()

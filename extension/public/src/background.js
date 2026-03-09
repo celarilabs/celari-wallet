@@ -230,6 +230,29 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: true });
       break;
 
+    // Faucet cache — offscreen has no chrome.storage, relay through background
+    case "GET_FAUCET_CACHE":
+      chrome.storage.local.get("celari_faucet_admin", (stored) => {
+        sendResponse({ data: stored.celari_faucet_admin || null });
+      });
+      return true;
+
+    case "SET_FAUCET_CACHE":
+      chrome.storage.local.set({ celari_faucet_admin: message.data });
+      sendResponse({ success: true });
+      break;
+
+    case "GET_FAUCET_RATE":
+      chrome.storage.local.get("celari_last_faucet", (stored) => {
+        sendResponse({ lastFaucetTime: stored.celari_last_faucet || 0 });
+      });
+      return true;
+
+    case "SET_FAUCET_RATE":
+      chrome.storage.local.set({ celari_last_faucet: message.lastFaucetTime });
+      sendResponse({ success: true });
+      break;
+
     case "GET_ACCOUNTS":
       sendResponse({ success: true, accounts: state.accounts });
       break;
@@ -495,6 +518,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       return true; // async response
     }
 
+    case "GET_WITHDRAW_PROOF": {
+      handleGetWithdrawProof(message.payload.l2TxHash).then(
+        (result) => sendResponse(result),
+        (err) => sendResponse({ success: false, error: err.message })
+      );
+      return true;
+    }
+
     default:
       // Forward PXE_* messages to offscreen document
       if (message.type?.startsWith("PXE_")) {
@@ -506,6 +537,42 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ success: true, ack: true });
           return;
         }
+        // PXE_DEPLOY_ACCOUNT can take 2-3 minutes — persist result to storage
+        // so popup can pick it up even if the message port closed
+        if (message.type === "PXE_DEPLOY_ACCOUNT") {
+          const deployData = message.data || {};
+          sendToPXE(message)
+            .then((result) => {
+              if (result?.address) {
+                // Persist deploy result so popup can read it even if message port closed
+                chrome.storage.local.get("celari_accounts", (data) => {
+                  const accounts = data.celari_accounts || [];
+                  const pending = accounts.find(a => !a.deployed);
+                  if (pending) {
+                    pending.deployed = true;
+                    pending.address = result.address;
+                    pending.publicKeyX = deployData.publicKeyX || pending.publicKeyX;
+                    pending.publicKeyY = deployData.publicKeyY || pending.publicKeyY;
+                    pending.salt = result.salt;
+                    pending.txHash = result.txHash;
+                    pending.blockNumber = result.blockNumber;
+                    pending.deployedAt = new Date().toISOString();
+                    chrome.storage.local.set({ celari_accounts: accounts });
+                    console.log("Deploy result persisted to storage:", result.address);
+                  }
+                });
+                if (result.secretKey) {
+                  chrome.storage.session.set({ celari_secret: result.secretKey });
+                }
+                if (deployData.privateKeyPkcs8) {
+                  chrome.storage.session.set({ celari_private_key: deployData.privateKeyPkcs8 });
+                }
+              }
+              sendResponse({ success: true, ...result });
+            })
+            .catch((e) => sendResponse({ success: false, error: e.message }));
+          return true;
+        }
         sendToPXE(message)
           .then((result) => sendResponse({ success: true, ...result }))
           .catch((e) => sendResponse({ success: false, error: e.message }));
@@ -514,6 +581,104 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: "Unknown message type" });
   }
 });
+
+// --- Withdraw Proof --------------------------------------------------
+
+/**
+ * Query Aztec node for the Merkle proof needed to claim a withdrawal on L1.
+ *
+ * 1. Get TX receipt → find block number
+ * 2. Check if block is proven (finalized on L1)
+ * 3. Get Outbox message proof (leafIndex + Merkle siblings)
+ */
+async function handleGetWithdrawProof(l2TxHash) {
+  if (!state.connected) {
+    return { success: false, error: "Not connected to Aztec node" };
+  }
+
+  const url = state.nodeUrl.replace(/\/$/, "");
+
+  // Step 1: Get TX receipt to find block number
+  const receiptRes = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "aztec_getTxReceipt",
+      params: [l2TxHash],
+      id: 1,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!receiptRes.ok) {
+    return { success: false, error: "Failed to query Aztec node" };
+  }
+
+  const receiptData = await receiptRes.json();
+  const receipt = receiptData.result;
+
+  if (!receipt || !receipt.blockNumber) {
+    return { success: false, error: "Transaction not yet included in a block" };
+  }
+
+  // Step 2: Check if block is proven on L1
+  const blockRes = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "aztec_getBlock",
+      params: [receipt.blockNumber],
+      id: 2,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!blockRes.ok) {
+    return { success: false, error: "Block info unavailable" };
+  }
+
+  const blockData = await blockRes.json();
+  const block = blockData.result;
+
+  if (!block || !block.proven) {
+    return { success: false, error: "Block not yet finalized" };
+  }
+
+  // Step 3: Get Outbox message Merkle proof
+  const proofRes = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "aztec_getOutboxMessageProof",
+      params: [receipt.blockNumber, l2TxHash],
+      id: 3,
+    }),
+    signal: AbortSignal.timeout(10000),
+  });
+
+  if (!proofRes.ok) {
+    return { success: false, error: "Outbox proof not available" };
+  }
+
+  const proofData = await proofRes.json();
+  const proof = proofData.result;
+
+  if (!proof) {
+    return { success: false, error: "Proof data not found" };
+  }
+
+  return {
+    success: true,
+    proof: {
+      blockNumber: String(receipt.blockNumber),
+      leafIndex: String(proof.leafIndex),
+      path: proof.siblings,
+    },
+  };
+}
 
 // --- Connection Check ------------------------------------------------
 

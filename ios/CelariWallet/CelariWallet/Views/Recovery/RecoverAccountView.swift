@@ -4,13 +4,16 @@ import SwiftUI
 /// User enters account address + recovery password to start the process.
 struct RecoverAccountView: View {
     @Environment(WalletStore.self) private var store
+    @Environment(PXEBridge.self) private var pxeBridge
     @State private var accountAddress = ""
     @State private var recoveryPassword = ""
     @State private var recovering = false
     @State private var recoveryId: String?
     @State private var approvedCount = 0
     @State private var thresholdMet = false
+    @State private var guardianKeys: [String] = []
     @State private var step: RecoveryStep = .input
+    @State private var polling = false
 
     enum RecoveryStep {
         case input            // Enter address + password
@@ -119,19 +122,25 @@ struct RecoverAccountView: View {
                 .font(CelariTypography.monoSmall)
                 .foregroundColor(CelariColors.copper)
 
-            // Refresh button
             Button {
                 checkStatus()
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "arrow.clockwise")
-                        .font(.system(size: 10))
+                    if polling {
+                        ProgressView()
+                            .scaleEffect(0.6)
+                            .tint(CelariColors.textDim)
+                    } else {
+                        Image(systemName: "arrow.clockwise")
+                            .font(.system(size: 10))
+                    }
                     Text("CHECK STATUS")
                         .font(CelariTypography.monoTiny)
                         .tracking(1)
                 }
                 .foregroundColor(CelariColors.textDim)
             }
+            .disabled(polling)
             .padding(.top, 8)
         }
     }
@@ -152,14 +161,20 @@ struct RecoverAccountView: View {
                 .foregroundColor(CelariColors.textMuted)
                 .multilineTextAlignment(.center)
 
-            // TODO: Countdown timer
+            DecoSeparator()
 
             Button {
                 executeRecovery()
             } label: {
-                Text("Finalize Recovery")
+                if recovering {
+                    ProgressView()
+                        .tint(CelariColors.textWarm)
+                } else {
+                    Text("Finalize Recovery")
+                }
             }
             .buttonStyle(CelariPrimaryButtonStyle())
+            .disabled(recovering)
         }
     }
 
@@ -194,21 +209,37 @@ struct RecoverAccountView: View {
         recovering = true
         Task {
             do {
-                // 1. Fetch CID from chain (TODO: read from contract)
-                // let cid = try await pxeBridge.call("get_recovery_cid", accountAddress)
+                // 1. Generate new P256 key pair for this device
+                let keyResult = try await pxeBridge.generateKeys()
+                guard let newPubKeyX = keyResult["publicKeyX"] as? String,
+                      let newPubKeyY = keyResult["publicKeyY"] as? String else {
+                    throw RecoveryError.keyGenerationFailed
+                }
 
-                // 2. Download encrypted bundle from IPFS (TODO)
-                // let encryptedBundle = try await IPFSManager.download(cid)
+                // 2. Send recovery request to relay server
+                let body: [String: Any] = [
+                    "accountAddress": accountAddress,
+                    "newPubKeyX": newPubKeyX,
+                    "newPubKeyY": newPubKeyY,
+                    "guardians": [
+                        ["email": "guardian@example.com"] // Relay fetches emails from CID
+                    ]
+                ]
 
-                // 3. Decrypt with recovery password (TODO)
-                // let bundle = try BackupManager.decryptAsync(encryptedBundle, password: recoveryPassword)
+                let url = URL(string: "\(relayBaseUrl)/api/initiate")!
+                var request = URLRequest(url: url)
+                request.httpMethod = "POST"
+                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                request.httpBody = try JSONSerialization.data(withJSONObject: body)
 
-                // 4. Generate new P256 key pair for this device
-                // let newKeyPair = P256.Signing.PrivateKey()
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let httpResponse = response as? HTTPURLResponse,
+                      httpResponse.statusCode == 200 else {
+                    throw RecoveryError.relayRequestFailed
+                }
 
-                // 5. Send recovery request to relay server
-                // let response = try await sendToRelay(...)
-                // recoveryId = response.recoveryId
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                recoveryId = json?["recoveryId"] as? String
 
                 step = .waitingGuardians
                 store.showToast("Recovery emails sent to guardians")
@@ -221,23 +252,90 @@ struct RecoverAccountView: View {
 
     private func checkStatus() {
         guard let rid = recoveryId else { return }
+        polling = true
         Task {
-            // TODO: Poll relay server for approval status
-            // GET /api/status?rid=\(rid)
-            // Update approvedCount and check thresholdMet
-            if thresholdMet {
-                step = .timeLock
+            do {
+                let url = URL(string: "\(relayBaseUrl)/api/status?rid=\(rid)")!
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+
+                approvedCount = json?["approvedCount"] as? Int ?? 0
+                thresholdMet = json?["thresholdMet"] as? Bool ?? false
+
+                if thresholdMet {
+                    // Collect approved guardian keys from relay
+                    if let keys = json?["guardianKeys"] as? [String] {
+                        guardianKeys = keys
+                    }
+                    step = .timeLock
+                    store.showToast("Guardian threshold met!")
+                }
+            } catch {
+                store.showToast("Status check failed", type: .error)
             }
+            polling = false
         }
     }
 
     private func executeRecovery() {
+        recovering = true
         Task {
-            // TODO: Submit on-chain execute_recovery transaction
-            // This calls the contract's execute_recovery() function
-            // which reads the matured SharedMutable values and
-            // replaces the signing key.
-            step = .complete
+            do {
+                // 1. Call initiate_recovery on-chain with guardian keys
+                guard guardianKeys.count >= 2 else {
+                    throw RecoveryError.insufficientGuardians
+                }
+
+                // Get the new key coordinates from the relay status
+                let url = URL(string: "\(relayBaseUrl)/api/status?rid=\(recoveryId ?? "")")!
+                let (statusData, _) = try await URLSession.shared.data(from: url)
+                let statusJson = try JSONSerialization.jsonObject(with: statusData) as? [String: Any]
+
+                let newKeyX = statusJson?["newPubKeyX"] as? String ?? ""
+                let newKeyY = statusJson?["newPubKeyY"] as? String ?? ""
+
+                // 2. Call initiate_recovery via PXE bridge
+                _ = try await pxeBridge.initiateRecovery(
+                    newKeyX: newKeyX,
+                    newKeyY: newKeyY,
+                    guardianKeyA: guardianKeys[0],
+                    guardianKeyB: guardianKeys[1]
+                )
+
+                store.showToast("Recovery initiated on-chain. 24h time-lock started.")
+
+                // 3. After time-lock (in production, user comes back later)
+                // For now, try execute_recovery immediately (will fail if time-lock not expired)
+                // TODO: Add timer/reminder to come back after 24h
+
+                // 4. Execute recovery (finalizes key rotation)
+                _ = try await pxeBridge.executeRecovery(
+                    newKeyX: newKeyX,
+                    newKeyY: newKeyY
+                )
+
+                step = .complete
+                store.showToast("Account recovered successfully!")
+            } catch {
+                store.showToast("Recovery failed: \(error.localizedDescription)", type: .error)
+            }
+            recovering = false
+        }
+    }
+}
+
+// MARK: - Errors
+
+enum RecoveryError: LocalizedError {
+    case keyGenerationFailed
+    case relayRequestFailed
+    case insufficientGuardians
+
+    var errorDescription: String? {
+        switch self {
+        case .keyGenerationFailed: return "Failed to generate new signing key"
+        case .relayRequestFailed: return "Relay server request failed"
+        case .insufficientGuardians: return "Not enough guardian approvals"
         }
     }
 }

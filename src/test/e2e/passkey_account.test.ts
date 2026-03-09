@@ -19,13 +19,13 @@ import { describe, it, expect, beforeAll } from "@jest/globals";
 import { Fr } from "@aztec/aztec.js/fields";
 import { AztecAddress } from "@aztec/aztec.js/addresses";
 import { createAztecNodeClient } from "@aztec/aztec.js/node";
-import { TestWallet } from "@aztec/test-wallet/server";
+import { EmbeddedWallet } from "@aztec/wallets/embedded";
 import { TokenContract } from "@aztec/noir-contracts.js/Token";
 
 const NODE_URL = process.env.AZTEC_NODE_URL || "http://localhost:8080";
 
 describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
-  let wallet: Awaited<ReturnType<typeof TestWallet.create>>;
+  let wallet: Awaited<ReturnType<typeof EmbeddedWallet.create>>;
   let aliceManager: any;
   let bobManager: any;
   let aliceWallet: any;
@@ -37,9 +37,9 @@ describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
   // ─── Setup ────────────────────────────────────────────
 
   beforeAll(async () => {
-    // Connect to Aztec node via TestWallet
+    // Connect to Aztec node via EmbeddedWallet
     const node = createAztecNodeClient(NODE_URL);
-    wallet = await TestWallet.create(node, { proverEnabled: true });
+    wallet = await EmbeddedWallet.create(node, { pxeConfig: { proverEnabled: true } });
     const chainInfo = await wallet.getChainInfo();
     console.log(`Connected to Aztec node — Chain ${chainInfo.chainId}`);
 
@@ -65,15 +65,15 @@ describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
 
     // Deploy both accounts on-chain
     console.log("Deploying accounts...");
-    const aliceDeployTx = await (await aliceManager.getDeployMethod()).send({
+    await (await aliceManager.getDeployMethod()).send({
       from: AztecAddress.ZERO,
+      wait: { timeout: 180_000 },
     });
-    await aliceDeployTx.wait({ timeout: 180_000 });
 
-    const bobDeployTx = await (await bobManager.getDeployMethod()).send({
+    await (await bobManager.getDeployMethod()).send({
       from: AztecAddress.ZERO,
+      wait: { timeout: 180_000 },
     });
-    await bobDeployTx.wait({ timeout: 180_000 });
     console.log("Both accounts deployed.");
   }, 300_000);
 
@@ -97,7 +97,7 @@ describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
       "Celari USD",  // name
       "zkUSD",       // symbol
       18,            // decimals
-    ).send({ from: aliceAddress }).deployed();
+    ).send({ from: aliceAddress, wait: { timeout: 180_000 } });
 
     tokenAddress = token.address;
     console.log(`zkUSD deployed: ${tokenAddress.toString().slice(0, 22)}...`);
@@ -116,8 +116,7 @@ describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
 
     await token.methods
       .mint_to_private(aliceAddress, mintAmount)
-      .send({ from: aliceAddress })
-      .wait({ timeout: 180_000 });
+      .send({ from: aliceAddress, wait: { timeout: 180_000 } });
 
     const balance = await token.methods
       .balance_of_private(aliceAddress)
@@ -138,8 +137,7 @@ describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
 
     await token.methods
       .transfer(bobAddress, transferAmount)
-      .send({ from: aliceAddress })
-      .wait({ timeout: 180_000 });
+      .send({ from: aliceAddress, wait: { timeout: 180_000 } });
 
     // Verify Alice's balance decreased
     const aliceBalance = await token.methods
@@ -172,25 +170,23 @@ describe("Celari Wallet — Passkey Account E2E (SDK v3)", () => {
     const charlieWallet = await charlieMgr.getAccount();
 
     // Deploy Charlie
-    const charlieDeploy = await (await charlieMgr.getDeployMethod()).send({
+    await (await charlieMgr.getDeployMethod()).send({
       from: AztecAddress.ZERO,
+      wait: { timeout: 180_000 },
     });
-    await charlieDeploy.wait({ timeout: 180_000 });
 
     // Alice → Bob (salary payment)
     const salary = 1_000n;
     await token.methods
       .transfer(bobAddress, salary)
-      .send({ from: aliceAddress })
-      .wait({ timeout: 180_000 });
+      .send({ from: aliceAddress, wait: { timeout: 180_000 } });
 
     // Bob → Charlie (spending)
     const tokenAsBob = await TokenContract.at(tokenAddress, bobWallet as any);
     const spending = 500n;
     await tokenAsBob.methods
       .transfer(charlieAddress, spending)
-      .send({ from: bobAddress })
-      .wait({ timeout: 180_000 });
+      .send({ from: bobAddress, wait: { timeout: 180_000 } });
 
     // Verify Charlie received funds
     const tokenAsCharlie = await TokenContract.at(tokenAddress, charlieWallet as any);

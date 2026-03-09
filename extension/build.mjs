@@ -72,6 +72,22 @@ try {
     conditions: ["browser", "module"],
     logLevel: "info",
     ...(isDev ? {} : { drop: ["console"] }),
+    banner: {
+      js: [
+        // Process polyfill
+        'if(typeof process==="undefined"){globalThis.process={env:{},platform:"browser",version:"v20.0.0",versions:{node:"20.0.0"},nextTick:function(cb){Promise.resolve().then(cb)},stdout:{write:function(){}},stderr:{write:function(){}},cwd:function(){return"/"},argv:[],on:function(){return this},off:function(){return this},emit:function(){return this}}}',
+        // Early error handlers to catch crashes during init
+        'self.addEventListener("error",function(e){console.error("[PXE-BANNER] Uncaught:",e.message,e.filename,e.lineno,e.colno)});',
+        'self.addEventListener("unhandledrejection",function(e){console.error("[PXE-BANNER] Unhandled rejection:",e.reason)});',
+        // Register early listener so background.js can communicate even if SDK init crashes
+        'var __pxeEarlyReady=false;chrome.runtime.onMessage.addListener(function(msg,sender,sendResponse){if(msg.type==="PING"){sendResponse({pong:true});return true}if(!__pxeEarlyReady&&(msg.type==="PXE_STATUS"||msg.type==="PXE_INIT")){sendResponse({error:"Offscreen still loading SDK..."});return true}});',
+        // Signal OFFSCREEN_READY immediately so background stops waiting
+        'chrome.runtime.sendMessage({type:"OFFSCREEN_READY"},function(){void chrome.runtime.lastError});',
+        'console.log("[PXE-BANNER] Early listener registered, OFFSCREEN_READY sent");',
+        // Heartbeat: report SDK loading progress every 10s via background
+        'var __loadStart=Date.now();var __hb=setInterval(function(){var e=Math.round((Date.now()-__loadStart)/1000);console.log("[PXE-BANNER] SDK loading... "+e+"s elapsed");if(__pxeEarlyReady){console.log("[PXE-BANNER] SDK loaded after "+e+"s");clearInterval(__hb)}},10000);',
+      ].join('\n'),
+    },
     define: {
       "process.env.NODE_ENV": JSON.stringify(isDev ? "development" : "production"),
       "process.env.PXE_PROVER_ENABLED": '"true"',
@@ -97,6 +113,7 @@ try {
       "buffer": resolve(rootDir, "node_modules/buffer"),
       "events": resolve(rootDir, "node_modules/events"),
     },
+    inject: [resolve(__dirname, "shims/globals-shim.js")],
     external: [],
     loader: {
       ".wasm": "file",  // Copy WASM files and return URL
@@ -190,6 +207,8 @@ try {
     const srcPath = resolve(rootDir, w.src);
     if (existsSync(srcPath)) {
       cpSync(srcPath, resolve(outdir, "wasm", w.name));
+      // Also copy to src/ so offscreen.js can find them via import.meta.url
+      cpSync(srcPath, resolve(outdir, "src", w.name));
       console.log(`  WASM: ${w.name} copied`);
     } else {
       console.warn(`  WASM: ${w.name} not found at ${srcPath}`);

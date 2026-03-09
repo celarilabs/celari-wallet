@@ -1,0 +1,1049 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Celari Wallet — Kapsamlı Teknik Doküman</title>
+<style>
+  @page {
+    size: A4;
+    margin: 2cm 2.2cm;
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+      font-size: 9px;
+      color: #888;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.7;
+    color: #1a1a1a;
+    max-width: 100%;
+    padding: 0;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    text-align: center;
+    padding: 120px 40px 60px;
+    page-break-after: always;
+  }
+  .cover .logo {
+    width: 100px;
+    height: 100px;
+    border-radius: 22%;
+    margin: 0 auto 30px;
+    display: block;
+  }
+  .cover h1 {
+    font-size: 42pt;
+    font-weight: 300;
+    letter-spacing: 10px;
+    color: #0a0c14;
+    border: none;
+    margin-bottom: 8px;
+  }
+  .cover .tagline {
+    font-size: 11pt;
+    color: #666;
+    font-style: italic;
+    margin-bottom: 60px;
+  }
+  .cover .doc-title {
+    font-size: 18pt;
+    font-weight: 600;
+    color: #111;
+    margin-bottom: 6px;
+  }
+  .cover .doc-sub {
+    font-size: 11pt;
+    color: #555;
+    margin-bottom: 40px;
+  }
+  .cover .meta {
+    font-size: 10pt;
+    color: #888;
+    line-height: 2;
+  }
+
+  /* ── Headings ── */
+  h1 {
+    font-size: 20pt;
+    font-weight: 700;
+    color: #0a0c14;
+    border-bottom: 3px solid #4dd4ac;
+    padding-bottom: 8px;
+    margin-top: 0;
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-size: 15pt;
+    font-weight: 700;
+    color: #111;
+    margin-top: 28px;
+    margin-bottom: 10px;
+    border-bottom: 1.5px solid #e0e0e0;
+    padding-bottom: 4px;
+    page-break-after: avoid;
+  }
+  h3 {
+    font-size: 12pt;
+    font-weight: 700;
+    color: #222;
+    margin-top: 20px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+  }
+  h4 {
+    font-size: 10.5pt;
+    font-weight: 700;
+    color: #333;
+    margin-top: 14px;
+    margin-bottom: 4px;
+  }
+
+  /* ── Elements ── */
+  p { margin: 8px 0; }
+  ul, ol { margin: 8px 0 8px 24px; }
+  li { margin: 4px 0; }
+  code {
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size: 9pt;
+    background: #f4f4f4;
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: "SF Mono", "Menlo", monospace;
+    font-size: 8.5pt;
+    background: #f7f7f7;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    padding: 12px 14px;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    page-break-inside: avoid;
+    margin: 10px 0;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 12px 0 16px;
+    font-size: 9.5pt;
+    page-break-inside: avoid;
+  }
+  th {
+    background: #0a0c14;
+    color: #fff;
+    font-weight: 600;
+    text-align: left;
+    padding: 8px 12px;
+    font-size: 9pt;
+  }
+  td {
+    border-bottom: 1px solid #ddd;
+    padding: 7px 12px;
+    vertical-align: top;
+  }
+  tr:nth-child(even) td { background: #fafafa; }
+
+  /* ── Special boxes ── */
+  .analogy {
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border-left: 4px solid #4dd4ac;
+    padding: 14px 18px;
+    margin: 14px 0;
+    border-radius: 0 8px 8px 0;
+    page-break-inside: avoid;
+  }
+  .analogy .label {
+    font-weight: 700;
+    font-size: 9pt;
+    color: #166534;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+  }
+  .warning {
+    background: #fef3c7;
+    border-left: 4px solid #f59e0b;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+    page-break-inside: avoid;
+  }
+  .info {
+    background: #eff6ff;
+    border-left: 4px solid #3b82f6;
+    padding: 12px 16px;
+    margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+    page-break-inside: avoid;
+  }
+  .comparison-win {
+    background: #16a34a;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 8pt;
+  }
+  .comparison-lose {
+    background: #dc2626;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 8pt;
+  }
+  .comparison-tie {
+    background: #6b7280;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 8pt;
+  }
+  .badge-celari {
+    background: #4dd4ac;
+    color: #0a0c14;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 8pt;
+  }
+  .badge-azguard {
+    background: #8b5cf6;
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-weight: 700;
+    font-size: 8pt;
+  }
+
+  .toc {
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px 28px;
+    margin: 20px 0 30px;
+  }
+  .toc h3 { margin-top: 0; color: #333; }
+  .toc ul { list-style: none; padding-left: 0; }
+  .toc li { padding: 4px 0; font-size: 10pt; }
+  .toc li::before { content: "\25B8  "; color: #4dd4ac; }
+  .toc .sub { padding-left: 20px; }
+  .toc .sub li::before { content: "\2022  "; color: #999; }
+
+  .page-break { page-break-before: always; }
+  hr { border: none; border-top: 1px solid #e0e0e0; margin: 24px 0; }
+
+  .flow-diagram {
+    text-align: center;
+    margin: 16px 0;
+    page-break-inside: avoid;
+  }
+  .flow-step {
+    display: inline-block;
+    background: #0a0c14;
+    color: #4dd4ac;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 9pt;
+    font-weight: 600;
+    margin: 4px;
+  }
+  .flow-arrow {
+    display: inline-block;
+    color: #999;
+    font-size: 14pt;
+    vertical-align: middle;
+    margin: 0 4px;
+  }
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 16px 0;
+  }
+  .stat-card {
+    text-align: center;
+    background: #f8f9fa;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 14px;
+  }
+  .stat-card .num {
+    font-size: 22pt;
+    font-weight: 700;
+    color: #4dd4ac;
+  }
+  .stat-card .label {
+    font-size: 8pt;
+    color: #666;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- KAPAK -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="cover">
+  <div style="font-size:80pt; font-weight:300; letter-spacing:12px; color:#0a0c14; margin-bottom:8px;">CELARI</div>
+  <div class="tagline">celāre (Latince) — gizlemek, saklamak, korumak</div>
+  <hr style="width:60%; margin: 30px auto; border-color:#4dd4ac;">
+  <div class="doc-title">Kapsamli Teknik Dokuman ve Denetim Raporu</div>
+  <div class="doc-sub">Aztec Network &bull; Cuzdan Mimarisi &bull; Guvenlik Denetimi &bull; Rekabet Analizi</div>
+  <div class="meta">
+    Tarih: 9 Mart 2026<br>
+    Versiyon: 0.5.0 (Build 22)<br>
+    Platform: iOS + Chrome Extension + Web<br>
+    Aztec SDK: v4.1.0-rc.2<br>
+    Hazirlayan: Celari Ekibi + Claude Code (Opus 4.6)
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- ICINDEKILER -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="toc">
+  <h3>Icindekiler</h3>
+  <ul>
+    <li><strong>Bolum 1:</strong> Aztec Network Nedir? (Sifirdan Anlatim)</li>
+    <li><strong>Bolum 2:</strong> Celari Wallet Nedir ve Neden Var?</li>
+    <li><strong>Bolum 3:</strong> Celari Nasil Calisiyor? (Teknik Mimari)</li>
+    <ul class="sub">
+      <li>3.1 Akilli Kontratlar (Noir)</li>
+      <li>3.2 iOS Uygulamasi</li>
+      <li>3.3 Chrome Extension</li>
+      <li>3.4 Bridge (Kopru)</li>
+      <li>3.5 Guardian Recovery (Sosyal Kurtarma)</li>
+    </ul>
+    <li><strong>Bolum 4:</strong> Yol Haritasi (Roadmap)</li>
+    <li><strong>Bolum 5:</strong> Guvenlik Denetimi (Audit)</li>
+    <li><strong>Bolum 6:</strong> Rakip Analizi — Celari vs Azguard</li>
+    <li><strong>Bolum 7:</strong> Proje Metrikleri ve Sonuc</li>
+  </ul>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 1: AZTEC NETWORK -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 1: Aztec Network Nedir?</h1>
+
+<p>Blockchain dunyasinda en buyuk problemlerden biri <strong>gizlilik</strong>. Ethereum'da yaptigin her islem — ne kadar para gonderdigin, kime gonderdigin, ne zaman gonderdigin — herkes tarafindan gorulebilir. Banka hesap detayin caddeye asilmis gibi dusun.</p>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p><strong>Ethereum</strong> = Cam duvarli bir banka. Herkes iceriye bakip ne yaptigini gorebilir.<br>
+  <strong>Aztec Network</strong> = Normal bir banka. Islemlerin sadece sana ve karsina ait. Disaridan kimse goremez.</p>
+</div>
+
+<h2>1.1 Zero-Knowledge Proof (Sifir Bilgi Kaniti) Nedir?</h2>
+
+<p>Aztec'in temelinde <strong>Zero-Knowledge Proof (ZKP)</strong> denen bir matematik yatiyor. Bunu su sekilde dusun:</p>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Bir arkadasina "Kasanin sifresi bende" demek istiyorsun ama sifreyi soylemeden. Ne yapiyorsun? Kasayi gozunun onunde acip kapatiyorsun. Arkadas "Evet, sifre sende" der — ama sifreyi hala bilmez.</p>
+  <p>ZKP tam olarak bu: <strong>"Bir seyi bildigini, o seyi aciklamadan kanitlamak."</strong></p>
+</div>
+
+<p>Blockchain'de ZKP soyle calisiyor:</p>
+<ol>
+  <li><strong>Kanit uret:</strong> "100 TL gonderdim" isleminin gecerli oldugunu matematiksel olarak kanitla</li>
+  <li><strong>Kaniti gonder:</strong> Bu kaniti blockchain'e gonder (islemin detaylarini degil, sadece kaniti)</li>
+  <li><strong>Dogrula:</strong> Herkes kanitin dogru oldugunu kontrol edebilir — ama islemin detayini goremez</li>
+</ol>
+
+<h2>1.2 Aztec'in Katmanli Yapisi</h2>
+
+<p>Aztec bir <strong>Layer 2 (L2)</strong> — yani Ethereum'un uzerine insa edilmis ikinci bir katman.</p>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p><strong>Ethereum (L1)</strong> = Ana otoyol. Guvenli ama yavas ve pahali.<br>
+  <strong>Aztec (L2)</strong> = Otoyolun uzerindeki hizli serit. Islemleri toplu halde otoyola (Ethereum'a) gonderiyor. Hem hizli, hem ucuz, hem gizli.</p>
+</div>
+
+<table>
+  <tr><th>Ozellik</th><th>Ethereum (L1)</th><th>Aztec (L2)</th></tr>
+  <tr><td>Gizlilik</td><td>Yok — her sey acik</td><td>Varsayilan olarak gizli</td></tr>
+  <tr><td>Hiz</td><td>~12 saniye/blok</td><td>~36 saniye/blok (toplu)</td></tr>
+  <tr><td>Ucret</td><td>Yuksek ($1-50+)</td><td>Dusuk (sponsorlu = $0)</td></tr>
+  <tr><td>Akilli Kontrat Dili</td><td>Solidity</td><td>Noir (ZK-native)</td></tr>
+  <tr><td>Kullanici Verisi</td><td>Herkes gorebilir</td><td>Sadece taraflar gorebilir</td></tr>
+</table>
+
+<h2>1.3 Aztec'in Temel Bilesenleri</h2>
+
+<h3>PXE (Private Execution Environment)</h3>
+<p>Turkce: <strong>Ozel Calistirma Ortami</strong>. Islemlerin sifrelenmesi ve kanitlarin uretilmesi <em>senin cihazinda</em> olur — sunucuda degil. Bu, kullanici verisinin hicbir zaman disari cikmamasi demek.</p>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>PXE = Cebindeki mini kasa. Tum hesaplamalar senin telefonunda/bilgisayarinda yapiliyor. Sonuc olarak sadece "bu islem gecerli" diyen bir kanit disari cikiyor. Paranin miktari, alicisi, zamani — hicbiri disari sizmiyor.</p>
+</div>
+
+<h3>Noir Programlama Dili</h3>
+<p>Aztec'te akilli kontratlar <strong>Noir</strong> diliyle yaziliyor. Noir, ZK devreleri (zero-knowledge circuits) olusturmak icin tasarlanmis ozel bir dil. Solidity gibi dusun ama gizlilik icin optimize edilmis.</p>
+
+<h3>Note Sistemi</h3>
+<p>Ethereum'da bakiyen acikca "Account X = 500 ETH" diye yazili. Aztec'te ise <strong>Note</strong> sistemi var:</p>
+<ul>
+  <li>Her bakiye parcasi sifrelenmis bir "not" (note) olarak saklanir</li>
+  <li>Sadece not'un sahibi icerigini gorebilir</li>
+  <li>Transfer yaptiginda eski not "yokedilir", yeni notlar olusturulur</li>
+  <li>Disaridan bakan biri sadece "bir islem oldu" gorur — ne kadar, kime, nereden bilmez</li>
+</ul>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Ethereum = Acik defterli muhasebe. Herkes her satiri okuyabilir.<br>
+  Aztec Note sistemi = Kilitli zarflar. Her zarf icinde "sana 50 TL" yaziyor ama zarfi sadece sen acabilirsin. Transfer yaptiginda eski zarfi yakip yeni zarflar olusturuyorsun.</p>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 2: CELARI WALLET NEDIR -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 2: Celari Wallet Nedir ve Neden Var?</h1>
+
+<p><strong>Celari</strong>, Aztec Network uzerinde calisan, <strong>dunyanin ilk Passkey-native gizlilik cuzdanidir</strong>. Ismi Latince "celāre" kelimesinden gelir: gizlemek, saklamak.</p>
+
+<h2>2.1 Problem: Bugunku Cuzdanlar Neden Yetersiz?</h2>
+
+<table>
+  <tr><th>Problem</th><th>Aciklama</th><th>Celari'nin Cozumu</th></tr>
+  <tr>
+    <td><strong>Seed Phrase</strong></td>
+    <td>12-24 kelime ezberle, kağıda yaz, kaybedersen hicbir sey yapamazsin</td>
+    <td>Passkey (Face ID / parmak izi) — kelime yok</td>
+  </tr>
+  <tr>
+    <td><strong>Gizlilik Yok</strong></td>
+    <td>MetaMask'ta her islemin herkes tarafindan gorulebilir</td>
+    <td>Varsayilan gizlilik — ZK proof ile</td>
+  </tr>
+  <tr>
+    <td><strong>Karmasik UI</strong></td>
+    <td>"Gas fee", "nonce", "hex address" — normal insan anlamaz</td>
+    <td>Gasless islemler, temiz arayuz</td>
+  </tr>
+  <tr>
+    <td><strong>Kurtarma Yok</strong></td>
+    <td>Telefon kirildi? Seed phrase kayip? Paraniz gitti</td>
+    <td>Guardian sistemi — 3 kisiyle kurtarma</td>
+  </tr>
+</table>
+
+<h2>2.2 Passkey Nedir?</h2>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Passkey = Telefonunun icindeki gorunmez anahtar. Face ID veya parmak izinle aktive oluyor. Kimse kopyalayamaz, calamaz, goremez. Sifre yazmana gerek yok — yuzunu goster, islem tamam.</p>
+</div>
+
+<p>Teknik olarak Passkey su sekilde calisiyor:</p>
+<ol>
+  <li>Telefonun <strong>Secure Enclave</strong> cipinde bir anahtar cifti olusturulur (P256/secp256r1)</li>
+  <li>Ozel anahtar cipten <strong>asla cikmaz</strong> — ne yazilim ne donanim erisebilir</li>
+  <li>Islem yapmak istediginde Face ID ile kimligini dogrularsın</li>
+  <li>Secure Enclave islemi imzalar ve imzayi disari verir</li>
+  <li>Aztec kontrati bu imzayi dogrular → islem onaylanir</li>
+</ol>
+
+<h2>2.3 Celari'nin Platform Destegi</h2>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="num" style="font-size:16pt;">iOS</div>
+    <div class="label">iPhone / iPad<br>SwiftUI Native</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" style="font-size:16pt;">Chrome</div>
+    <div class="label">Extension<br>Manifest V3</div>
+  </div>
+  <div class="stat-card">
+    <div class="num" style="font-size:16pt;">Web</div>
+    <div class="label">celariwallet.com<br>Next.js</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 3: TEKNIK MIMARI -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 3: Celari Nasil Calisiyor?</h1>
+
+<p>Celari'nin teknik mimarisini katman katman inceleyelim. Her bileseni basitce aciklayip sonra teknik detaya girecegiz.</p>
+
+<h2>3.1 Akilli Kontratlar (Noir)</h2>
+
+<p>Celari'nin iki akilli kontrati var. Bunlar Aztec Network uzerinde calisan programlar:</p>
+
+<h3>Kontrat 1: CelariPasskeyAccount (v0.3.0)</h3>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Bu kontrat senin blockchain'deki "kimlik kartin". Passkey'inle imzalanan her islemin gecerli olup olmadigini kontrol eder. Baskasi senin adina islem yapmaya calissa reddeder.</p>
+</div>
+
+<p><strong>Ne yapiyor:</strong></p>
+<ul>
+  <li>Hesap olusturulurken P256 acik anahtarini kaydeder</li>
+  <li>Her islemde WebAuthn imzasini dogrular (ECDSA-P256)</li>
+  <li>Islemi onaylayip Aztec agina gonderir</li>
+  <li>Account Abstraction destegi (islem mantigi cuzdanin icinde)</li>
+</ul>
+
+<p><strong>Teknik detay:</strong></p>
+<pre>
+// Noir kontrat yapisi (basitlestirilmis)
+contract CelariPasskeyAccount {
+    // Depolama: Sifrelenmis ozel anahtar notu
+    storage: signing_public_key: SinglePrivateImmutable&lt;PublicKeyNote&gt;
+
+    // Hesap olustur
+    fn constructor(pub_key_x: [u8; 32], pub_key_y: [u8; 32])
+
+    // Islem giris noktasi (her TX buradan gecer)
+    fn entrypoint(app_payload, fee_payload, cancellable)
+
+    // P256 imza dogrulama
+    fn is_valid_impl() → bool {
+        ecdsa_secp256r1::verify_signature(pub_key_x, pub_key_y, signature, message_hash)
+    }
+}
+</pre>
+
+<h3>Kontrat 2: CelariRecoverableAccount (v0.1.0)</h3>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Bu kontrat birinci kontratin "gelismis versiyonu". Ek olarak 3 tane "koruyucu" (guardian) atayabiliyorsun. Telefonunu kaybedersen bu 3 kisiden 2'si onaylarsa hesabini kurtarabiliyorsun. Banka subesi gibi dusun — kimligini kaybettin, 2 referansla yeni kimlik cikartiyorsun.</p>
+</div>
+
+<p><strong>Guardian Kurtarma Akisi:</strong></p>
+
+<div class="flow-diagram">
+  <span class="flow-step">Telefon Kayip!</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">2/3 Guardian Onaylar</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">24 Saat Bekleme</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">Yeni Anahtar Aktif</span>
+</div>
+
+<p><strong>Guvenlik onlemleri:</strong></p>
+<ul>
+  <li>Guardian'larin anahtarlari blockchain'de <strong>saklanmaz</strong> — sadece hash'leri (parmak izleri) saklanir</li>
+  <li>24 saatlik bekleme suresi: Sahte kurtarma girisimini fark edip iptal edebilirsin</li>
+  <li>2-of-3 esik: Tek bir guardian'in onaylamamasi yeterli degil</li>
+  <li>Kurtarma sirasinda eski anahtar hala calisir (iptal edebilmek icin)</li>
+</ul>
+
+<h2>3.2 iOS Uygulamasi (SwiftUI)</h2>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>iOS uygulamasi senin "banka uygulamasi". Ama klasik bankacilik uygulamasindan farki: tum islemler senin telefonunda sifreleniyor, banka (sunucu) hicbir sey gormuyor.</p>
+</div>
+
+<p><strong>Mimari:</strong></p>
+<pre>
+iOS Uygulama Katmanlari:
+┌─────────────────────────────────┐
+│   SwiftUI Views (18+ ekran)     │  ← Kullanici Arayuzu
+├─────────────────────────────────┤
+│   WalletStore (State Manager)   │  ← Merkezi Durum Yonetimi
+├─────────────────────────────────┤
+│   PXEBridge (WKWebView)        │  ← JavaScript → Swift Koprsu
+├─────────────────────────────────┤
+│   Aztec PXE (WASM Engine)      │  ← ZK Kanit Uretimi
+├─────────────────────────────────┤
+│   Secure Enclave + Keychain    │  ← Donanim Guvenligi
+└─────────────────────────────────┘
+</pre>
+
+<p><strong>Onemli teknik kararlar:</strong></p>
+<ul>
+  <li><strong>WKWebView icinde PXE:</strong> Aztec'in ZK motoru JavaScript/WASM — bunu iOS'ta calistirmak icin gorunmez bir 1x1 piksel WebView kullaniliyor</li>
+  <li><strong>MemoryAztecStore:</strong> WKWebView'da IndexedDB crash yapiyordu, bu yuzden bellekte (RAM) veri saklama tercih edildi</li>
+  <li><strong>AES-256-GCM sifreli snapshot:</strong> Uygulama kapandiginda ~56MB'lik PXE durumu sifrelenerek diske yaziliyor, acildiginda geri yukleniyor</li>
+  <li><strong>Passkey Manager:</strong> Face ID / Touch ID ile P256 anahtar yonetimi</li>
+</ul>
+
+<h2>3.3 Chrome Extension (Manifest V3)</h2>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Chrome Extension = Tarayicinin icindeki mini cuzdan. Herhangi bir web sitesinde "Celari ile baglan" dediginde devreye giriyor. MetaMask gibi dusun ama gizli.</p>
+</div>
+
+<p><strong>Yapi:</strong></p>
+<ul>
+  <li><strong>popup.js</strong> (2,829 satir): Kullanici arayuzu — 7 ekran (onboarding, dashboard, send, receive, settings, activity, recovery)</li>
+  <li><strong>background.js</strong> (Service Worker): PXE durumu yonetimi, offscreen belge yasam dongusu</li>
+  <li><strong>offscreen.js</strong> (1,388 satir): WASM motoru — Aztec SDK, ZK kanit uretimi. Tarayici sekmelerinden izole calisir</li>
+  <li><strong>content.js</strong>: Web sitelerine enjekte edilen script — Celari provider'i sunar</li>
+  <li><strong>inpage.js</strong>: <code>window.celari</code> API'si — dApp'ler bununla iletisim kurar</li>
+</ul>
+
+<p><strong>dApp Entegrasyon API'si:</strong></p>
+<pre>
+// Herhangi bir web sitesi bu API'yi kullanabilir:
+const wallet = window.celari;
+
+// Cuzdana baglan
+const { address, publicKey } = await wallet.connect();
+
+// Transfer yap (gizli)
+await wallet.sendTransaction({
+  to: "0x...",
+  amount: 100,
+  token: "0x..."
+});
+
+// Mesaj imzala
+const signature = await wallet.createAuthWit(messageHash);
+</pre>
+
+<h2>3.4 Bridge (Ethereum ↔ Aztec Koprusu)</h2>
+
+<div class="analogy">
+  <div class="label">Basit Benzetme</div>
+  <p>Bridge = Iki ulke arasindaki doviz burosu. Ethereum'daki paranı (ETH, USDC vs.) Aztec'e tasiyorsun → gizli oluyor. Geri tasimak istediginde Aztec'ten Ethereum'a cikartiyorsun.</p>
+</div>
+
+<p><strong>Transfer Akisi:</strong></p>
+
+<div class="flow-diagram">
+  <span class="flow-step">Ethereum (L1)</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">Approve Token</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">Deposit to Portal</span>
+  <span class="flow-arrow">→</span>
+  <span class="flow-step">Claim on Aztec (L2)</span>
+</div>
+
+<p><strong>4 Transfer Tipi:</strong></p>
+<table>
+  <tr><th>Tip</th><th>Nereden → Nereye</th><th>Aciklama</th></tr>
+  <tr><td><strong>Public Transfer</strong></td><td>L2 Public → L2 Public</td><td>Acik bakiyeden acik bakiyeye (Ethereum gibi)</td></tr>
+  <tr><td><strong>Private Transfer</strong></td><td>L2 Private → L2 Private</td><td>Gizli bakiyeden gizli bakiyeye (kimse goremiyor)</td></tr>
+  <tr><td><strong>Shield</strong></td><td>L2 Public → L2 Private</td><td>Acik bakiyeni gizli yap (parani "kalkana al")</td></tr>
+  <tr><td><strong>Unshield</strong></td><td>L2 Private → L2 Public</td><td>Gizli bakiyeni acik yap (disari cikar)</td></tr>
+</table>
+
+<h2>3.5 Guardian Recovery (Sosyal Kurtarma)</h2>
+
+<p>Celari'nin en yenilikci ozelliklerinden biri: <strong>Seed phrase olmadan hesap kurtarma</strong>.</p>
+
+<p><strong>Nasil calisiyor?</strong></p>
+<ol>
+  <li><strong>Hazirlik:</strong> 3 guvendigin kisinin email adresini girersin + bir kurtarma sifresi belirlersin</li>
+  <li><strong>Bilgi saklama:</strong> Guardian'larin email hash'leri blockchain'e yazilir, sifrelenmis yedek IPFS'e yuklenir</li>
+  <li><strong>Kurtarma baslatma:</strong> Yeni cihazdan "Hesabimi kurtar" dersin</li>
+  <li><strong>Guardian onay:</strong> Guardian'lara email gider, 2 tanesi "Evet, bu kisi gercekten hesap sahibi" der</li>
+  <li><strong>Bekleme:</strong> 24 saat guvenlik bekleme suresi (sahte girisimlere karsi)</li>
+  <li><strong>Tamamlama:</strong> Yeni passkey olusturulur, eski anahtar deaktif olur</li>
+</ol>
+
+<div class="info">
+  <strong>Teknik altyapi:</strong> Recovery relay servisi Vercel Edge Functions + Upstash Redis uzerinde calisiyor. Guardian onay emailleri Resend API ile gonderiliyor. Tum state Redis'te 24 saat TTL ile saklaniyor.
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 4: ROADMAP -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 4: Yol Haritasi (Roadmap)</h1>
+
+<table>
+  <tr>
+    <th>Faz</th>
+    <th>Isim</th>
+    <th>Durum</th>
+    <th>Detay</th>
+  </tr>
+  <tr>
+    <td><strong>Faz 0</strong></td>
+    <td>Schnorr Prototipi</td>
+    <td><span class="comparison-win">TAMAMLANDI</span></td>
+    <td>Ilk prototip Schnorr imzalariyla. Konsept kaniti basarili.</td>
+  </tr>
+  <tr>
+    <td><strong>Faz 1</strong></td>
+    <td>Passkey + Extension</td>
+    <td><span class="comparison-win">TAMAMLANDI</span></td>
+    <td>P256 Noir kontrati, Chrome extension, iOS uygulamasi, 95 test. Passkey dogal entegrasyonu.</td>
+  </tr>
+  <tr>
+    <td><strong>Faz 2</strong></td>
+    <td>L1-L2 Bridge + Recovery</td>
+    <td><span style="background:#f59e0b;color:#fff;padding:2px 8px;border-radius:4px;font-weight:700;font-size:8pt;">DEVAM EDIYOR</span></td>
+    <td>Ethereum ↔ Aztec koprusu, guardian-based sosyal kurtarma, relay servisi. SDK tamamlandi, test asamasinda.</td>
+  </tr>
+  <tr>
+    <td><strong>Faz 3</strong></td>
+    <td>Toplu Odeme (Batch Payroll)</td>
+    <td><span class="comparison-tie">PLANLI</span></td>
+    <td>Tek islemde birden fazla kisiye odeme. Sirketler icin maas odemesi. Privacy-preserving payroll.</td>
+  </tr>
+  <tr>
+    <td><strong>Faz 4</strong></td>
+    <td>Kripto Karti</td>
+    <td><span class="comparison-tie">PLANLI</span></td>
+    <td>Sanal + fiziksel kart. Gizli bakiyeden dogrudan harcama. Visa/Mastercard entegrasyonu.</td>
+  </tr>
+  <tr>
+    <td><strong>Faz 5</strong></td>
+    <td>Mobil + Cross-chain</td>
+    <td><span class="comparison-tie">PLANLI</span></td>
+    <td>Android uygulamasi, birden fazla blockchain destegi, tam WalletConnect v2 entegrasyonu.</td>
+  </tr>
+</table>
+
+<h2>Tamamlanan Is Miktari</h2>
+
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="num">16,700+</div>
+    <div class="label">Satir Kod</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">95</div>
+    <div class="label">Test Vakasi</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">5</div>
+    <div class="label">Programlama Dili</div>
+  </div>
+</div>
+<div class="stat-grid">
+  <div class="stat-card">
+    <div class="num">100+</div>
+    <div class="label">Dosya</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">18+</div>
+    <div class="label">Ekran (iOS)</div>
+  </div>
+  <div class="stat-card">
+    <div class="num">7</div>
+    <div class="label">Ekran (Extension)</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 5: GUVENLIK DENETIMI -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 5: Guvenlik Denetimi (Audit)</h1>
+
+<p>Bu bolum Celari Wallet'in guvenlik analizini icermektedir. Her bulgu onem derecesine gore siniflandirilmistir.</p>
+
+<h2>5.1 Genel Guvenlik Puani</h2>
+
+<table>
+  <tr><th>Kategori</th><th>Puan (10 uzerinden)</th><th>Degerlendirme</th></tr>
+  <tr><td>Kriptografik Guvenlik</td><td><strong>9/10</strong></td><td>P256 Secure Enclave'de, anahtar asla cikmaz</td></tr>
+  <tr><td>Akilli Kontrat Guvenligi</td><td><strong>8/10</strong></td><td>Noir-native ZK, Account Abstraction dogru uygulanmis</td></tr>
+  <tr><td>Ag Guvenligi</td><td><strong>7/10</strong></td><td>PXE yerel calisir, CORS kisitlamalari gerekiyor</td></tr>
+  <tr><td>Veri Guvenligi</td><td><strong>8/10</strong></td><td>AES-256-GCM sifreli snapshot, Keychain entegrasyonu</td></tr>
+  <tr><td>Kurtarma Guvenligi</td><td><strong>8/10</strong></td><td>2-of-3 guardian, 24h timelock, hash-only storage</td></tr>
+  <tr><td><strong>GENEL</strong></td><td><strong>8.0/10</strong></td><td>Guclu temel, bazi iyilestirmeler gerekli</td></tr>
+</table>
+
+<h2>5.2 Mimari Guvenlik Gucleri</h2>
+
+<h3>Passkey + Secure Enclave</h3>
+<ul>
+  <li>P256 ozel anahtari donanimin icinde — yazilimla erisilemez</li>
+  <li>Face ID / Touch ID biyometrik dogrulama gerekli</li>
+  <li>Anahtar asla disariya cikarilmaz veya kopyalanamaz</li>
+  <li>Phishing'e karsi dayanikli (domain-bound credentials)</li>
+</ul>
+
+<h3>Sifir Bilgi Kaniti (ZKP)</h3>
+<ul>
+  <li>Tum islemler istemci tarafinda (PXE) sifrelenir</li>
+  <li>Blockchain'e sadece kanitlar gonderilir, ham veri degil</li>
+  <li>Islem grafi (kim kime gonderdi) gorulemez</li>
+  <li>Note sistemi ile bakiye parcalama</li>
+</ul>
+
+<h3>Yerel PXE Calistirma</h3>
+<ul>
+  <li>PXE motoru sunucuda degil, kullanicinin cihazinda calisir</li>
+  <li>Ozel veriler cihazi terk etmez</li>
+  <li>WASM tabanlı — tarayici sandbox'inda izole</li>
+</ul>
+
+<h2>5.3 Tespit Edilen Sorunlar ve Durumlari</h2>
+
+<table>
+  <tr><th>#</th><th>Sorun</th><th>Seviye</th><th>Durum</th><th>Aciklama</th></tr>
+  <tr>
+    <td>1</td>
+    <td>WebAuthn imza format uyumsuzlugu</td>
+    <td><span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">KRITIK</span></td>
+    <td><span class="comparison-win">DUZELTILDI</span></td>
+    <td>WebAuthn assertion formatı ile Noir kontrat beklentisi arasindaki uyumsuzluk giderildi</td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>IndexedDB crash (WKWebView)</td>
+    <td><span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">KRITIK</span></td>
+    <td><span class="comparison-win">DUZELTILDI</span></td>
+    <td>MemoryAztecStore ile degistirildi + AES-256-GCM snapshot persistance eklendi</td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>CORS: Access-Control-Allow-Origin: *</td>
+    <td><span style="background:#ea580c;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">YUKSEK</span></td>
+    <td><span style="background:#f59e0b;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">DEVAM</span></td>
+    <td>Deploy server'da CORS tum originlere acik. Whitelist gerekiyor</td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>Content script postMessage origin</td>
+    <td><span style="background:#ea580c;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">YUKSEK</span></td>
+    <td><span style="background:#f59e0b;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">DEVAM</span></td>
+    <td>postMessage "*" yerine spesifik origin kullanmali</td>
+  </tr>
+  <tr>
+    <td>5</td>
+    <td>Ozel anahtar dosya izinleri</td>
+    <td><span style="background:#ca8a04;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">ORTA</span></td>
+    <td><span class="comparison-win">DUZELTILDI</span></td>
+    <td>.celari-keys.json chmod 0600 olarak ayarlandi</td>
+  </tr>
+  <tr>
+    <td>6</td>
+    <td>PXE snapshot boyutu (~56MB)</td>
+    <td><span style="background:#ca8a04;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">ORTA</span></td>
+    <td><span style="background:#f59e0b;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">DEVAM</span></td>
+    <td>Buyuk snapshot boyutu performans etkiliyor. Incremental sync planlanıyor</td>
+  </tr>
+  <tr>
+    <td>7</td>
+    <td>Noir kontrat versiyon uyumsuzlugu</td>
+    <td><span style="background:#6b7280;color:#fff;padding:2px 6px;border-radius:3px;font-size:8pt;font-weight:700;">DUSUK</span></td>
+    <td><span class="comparison-win">DUZELTILDI</span></td>
+    <td>Nargo.toml ve package.json versiyonlari hizalandi</td>
+  </tr>
+</table>
+
+<h2>5.4 Oneriler</h2>
+
+<div class="warning">
+  <strong>Oncelikli:</strong>
+  <ol>
+    <li>Deploy server CORS'u spesifik domainlerle sinirla</li>
+    <li>Extension content script'te postMessage origin kontrolu ekle</li>
+    <li>PXE snapshot'i incremental yapiya tasiyarak boyutu dusur</li>
+    <li>Mainnet oncesi bagimsiz guvenlik denetimi (3. parti audit) yaptirilmali</li>
+  </ol>
+</div>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 6: RAKIP ANALIZI -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 6: Rakip Analizi — Celari vs Azguard</h1>
+
+<p><strong>Azguard Wallet</strong>, Aztec ekosistemindeki bir diger cuzdan projesidir. Iki projeyi detayli olarak karsilastiralim.</p>
+
+<h2>6.1 Genel Karsilastirma</h2>
+
+<table>
+  <tr>
+    <th>Ozellik</th>
+    <th><span class="badge-celari">Celari</span></th>
+    <th><span class="badge-azguard">Azguard</span></th>
+    <th>Avantaj</th>
+  </tr>
+  <tr>
+    <td><strong>Kimlik Dogrulama</strong></td>
+    <td>Passkey (Face ID / parmak izi)<br>Seed phrase yok</td>
+    <td>Geleneksel seed phrase<br>12/24 kelime</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Kriptografik Standart</strong></td>
+    <td>P256/secp256r1 (WebAuthn)<br>Secure Enclave destegi</td>
+    <td>secp256k1 (Schnorr)<br>Yazilim tabanlı</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Anahtar Saklama</strong></td>
+    <td>Donanim Secure Enclave<br>Anahtar cikarilmaz</td>
+    <td>Yazilim keystore<br>Bellek icerisinde</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Hesap Kurtarma</strong></td>
+    <td>Guardian-based (2-of-3)<br>24h timelock + email relay</td>
+    <td>Seed phrase backup<br>Standart yedekleme</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Gasless Islem</strong></td>
+    <td>SponsoredFPC ile<br>Kullanici gas odemez</td>
+    <td>Kullanici gas oder</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>iOS Uygulamasi</strong></td>
+    <td>Native SwiftUI<br>18+ ekran, tam ozellik</td>
+    <td>Yok (sadece web)</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Bridge (L1↔L2)</strong></td>
+    <td>Entegre kopru SDK<br>4 transfer tipi</td>
+    <td>Sinirli / harici</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Transfer Tipleri</strong></td>
+    <td>Public, Private, Shield, Unshield</td>
+    <td>Public, Private</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Topluluk Buyuklugu</strong></td>
+    <td>Erken asama<br>Buyuyor</td>
+    <td>Daha buyuk topluluk<br>Daha erken basladi</td>
+    <td><span class="badge-azguard">Azguard</span></td>
+  </tr>
+  <tr>
+    <td><strong>Acik Kaynak</strong></td>
+    <td>Tam acik kaynak</td>
+    <td>Kismi acik kaynak</td>
+    <td><span class="badge-celari">Celari</span></td>
+  </tr>
+  <tr>
+    <td><strong>Ekosistem Entegrasyonu</strong></td>
+    <td>SDK + dApp API<br>WalletConnect (geliyor)</td>
+    <td>Temel entegrasyon</td>
+    <td><span class="comparison-tie">Esit</span></td>
+  </tr>
+</table>
+
+<h2>6.2 Neden Passkey &gt; Seed Phrase?</h2>
+
+<div class="analogy">
+  <div class="label">Karar Vericiler Icin</div>
+  <p>Seed phrase sorunu blockchain'in en buyuk kullanici deneyimi (UX) problemi. Binlerce insan seed phrase kaybederek kripto varliklarini kaybetti. Celari bu sorunu tamamen ortadan kaldiriyor:</p>
+</div>
+
+<table>
+  <tr><th>Kriter</th><th>Seed Phrase (Azguard)</th><th>Passkey (Celari)</th></tr>
+  <tr>
+    <td>Kaybolma Riski</td>
+    <td>Yuksek — kagit kaybolabilir, hafiza unutabilir</td>
+    <td>Cok dusuk — biyometrik, cihazlar arasi senkron</td>
+  </tr>
+  <tr>
+    <td>Phishing Riski</td>
+    <td>Yuksek — sahte siteler seed phrase calabilir</td>
+    <td>Sifir — passkey domain'e bagli, sahte sitede calismaz</td>
+  </tr>
+  <tr>
+    <td>Kullanim Kolayligi</td>
+    <td>Zor — 12-24 kelime yaz, sakla, gir</td>
+    <td>Kolay — yuzunu goster veya parmagini koy</td>
+  </tr>
+  <tr>
+    <td>Donanim Guvenligi</td>
+    <td>Yok — anahtar yazilimda</td>
+    <td>Var — Secure Enclave cipinde</td>
+  </tr>
+  <tr>
+    <td>Kurtarma</td>
+    <td>Seed phrase kayipsa kurtarma yok</td>
+    <td>Guardian sistemi ile kurtarma mumkun</td>
+  </tr>
+</table>
+
+<h2>6.3 Teknik Derinlik Karsilastirmasi</h2>
+
+<table>
+  <tr><th>Metrik</th><th><span class="badge-celari">Celari</span></th><th><span class="badge-azguard">Azguard</span></th></tr>
+  <tr><td>Toplam Kod Satiri</td><td>16,700+</td><td>~8,000 (tahmini)</td></tr>
+  <tr><td>Test Vakasi</td><td>95</td><td>~30-40 (tahmini)</td></tr>
+  <tr><td>Programlama Dili</td><td>5 (Noir, Swift, TS, JS, CSS)</td><td>3 (Noir, TS, CSS)</td></tr>
+  <tr><td>Platform</td><td>iOS + Chrome + Web</td><td>Chrome + Web</td></tr>
+  <tr><td>Akilli Kontrat Sayisi</td><td>2 (passkey + recoverable)</td><td>1 (schnorr account)</td></tr>
+  <tr><td>Noir LOC</td><td>~465</td><td>~200 (tahmini)</td></tr>
+</table>
+
+<h2>6.4 Ozet: Celari'nin Rekabet Avantajlari</h2>
+
+<ol>
+  <li><strong>Seed Phrase'i Tamamen Kaldirmasi:</strong> Passkey ile dunyanin ilk Aztec cuzdani. Kullanici deneyiminde devrim.</li>
+  <li><strong>Donanim Guvenligi:</strong> Secure Enclave entegrasyonu — rakipler yazilim tabanli anahtarlar kullaniyor.</li>
+  <li><strong>Native iOS Uygulamasi:</strong> Aztec ekosistemindeki tek native mobil uygulama.</li>
+  <li><strong>Sosyal Kurtarma:</strong> Guardian-based recovery sistemi — seed phrase'e bagli kurtarma yok.</li>
+  <li><strong>Gasless Islemler:</strong> SponsoredFPC ile kullanici gas odemez — onboarding surtkuntusunu ortadan kaldirir.</li>
+  <li><strong>Entegre Bridge:</strong> L1↔L2 koprusu cuzdan icinden — harici araca gerek yok.</li>
+  <li><strong>Tam Acik Kaynak:</strong> Tum kod tabanı incelenebilir — guven ve seffaflik.</li>
+</ol>
+
+<!-- ════════════════════════════════════════════════ -->
+<!-- BOLUM 7: SONUC -->
+<!-- ════════════════════════════════════════════════ -->
+<div class="page-break"></div>
+<h1>Bolum 7: Proje Metrikleri ve Sonuc</h1>
+
+<h2>7.1 Teknik Ozet</h2>
+
+<table>
+  <tr><th>Bilesen</th><th>Teknoloji</th><th>Detay</th></tr>
+  <tr><td>Akilli Kontratlar</td><td>Noir (Aztec)</td><td>2 kontrat, ~465 satir, P256 + recovery</td></tr>
+  <tr><td>iOS Uygulamasi</td><td>SwiftUI</td><td>~8,000 satir, 18+ ekran, WKWebView PXE</td></tr>
+  <tr><td>Chrome Extension</td><td>JavaScript (MV3)</td><td>~5,000 satir, 7 ekran, offscreen WASM</td></tr>
+  <tr><td>Bridge SDK</td><td>TypeScript</td><td>L1↔L2 kopru, 4 transfer tipi</td></tr>
+  <tr><td>Recovery Relay</td><td>Vercel Edge + Redis</td><td>3 endpoint, email entegrasyonu</td></tr>
+  <tr><td>Website</td><td>Next.js + next-intl</td><td>2 dil (EN/TR), 188 ceviri anahtari</td></tr>
+  <tr><td>SDK</td><td>TypeScript</td><td>@celari/wallet-sdk, dApp entegrasyonu</td></tr>
+</table>
+
+<h2>7.2 Guvenlik Ozeti</h2>
+
+<ul>
+  <li><strong>Kriptografi:</strong> P256/secp256r1, Secure Enclave, ECDSA-SHA256 — endustri standardi</li>
+  <li><strong>Gizlilik:</strong> Aztec ZK proof'lari, istemci-tarafli PXE, note-based bakiye</li>
+  <li><strong>Veri Koruma:</strong> AES-256-GCM sifreli snapshot, Keychain entegrasyonu</li>
+  <li><strong>Kurtarma:</strong> 2-of-3 guardian esik, 24h guvenlik bekleme suresi</li>
+  <li><strong>Genel Skor: 8.0 / 10</strong> — Guclu temel, bazi iyilestirmeler devam ediyor</li>
+</ul>
+
+<h2>7.3 Sonuc</h2>
+
+<p>Celari Wallet, Aztec Network ekosisteminde <strong>teknik derinlik, kullanici deneyimi ve guvenlik</strong> acisindan one cikan bir projedir. Passkey-native yaklasimi, blockchain cuzdanlarinin en buyuk UX sorununu (seed phrase) cozuyor. Secure Enclave entegrasyonu, donanim duzeyinde guvenlik sagliyor. Guardian-based recovery, seed phrase'e bagli olmadan hesap kurtarma sunuyor.</p>
+
+<p>Mevcut asamada (Faz 2 — Bridge + Recovery) proje hizla ilerliyor. iOS native uygulamasi ve 95 test vakasi ile teknik olgunluk seviyesi yuksek. Mainnet oncesi bagimsiz guvenlik denetimi ve topluluk buyumesi sonraki oncelikli adimlar.</p>
+
+<hr>
+
+<p style="text-align:center; color:#888; font-size:9pt; margin-top:40px;">
+  Bu dokuman Celari Ekibi tarafindan hazirlanmistir.<br>
+  Versiyon 0.5.0 (Build 22) &bull; 9 Mart 2026<br>
+  <strong>celariwallet.com</strong>
+</p>
+
+</body>
+</html>

@@ -138,7 +138,8 @@ class PXEBridge: NSObject {
         switch type {
         case "PXE_FAUCET":
             timeoutSeconds = 1200  // 20 min — up to 3 sequential proofs + block inclusion
-        case "PXE_DEPLOY_ACCOUNT", "PXE_TRANSFER", "PXE_NFT_TRANSFER":
+        case "PXE_DEPLOY_ACCOUNT", "PXE_TRANSFER", "PXE_NFT_TRANSFER",
+             "PXE_SETUP_GUARDIANS", "PXE_INITIATE_RECOVERY", "PXE_EXECUTE_RECOVERY", "PXE_CANCEL_RECOVERY":
             timeoutSeconds = 600   // 10 min — 1 proof + block inclusion
         case "PXE_SNAPSHOT_RESTORE":
             timeoutSeconds = 600   // 10 min — deserialize + recreate PXE/TestWallet
@@ -257,6 +258,51 @@ class PXEBridge: NSObject {
 
     func wcSessions() async throws -> [String: Any] {
         try await sendMessage("PXE_WC_SESSIONS")
+    }
+
+    // MARK: - Guardian Recovery
+
+    func setupGuardians(guardianHash0: String, guardianHash1: String, guardianHash2: String, threshold: Int, cidPart1: String, cidPart2: String) async throws -> [String: Any] {
+        try await sendMessage("PXE_SETUP_GUARDIANS", data: ["data": [
+            "guardianHash0": guardianHash0,
+            "guardianHash1": guardianHash1,
+            "guardianHash2": guardianHash2,
+            "threshold": threshold,
+            "cidPart1": cidPart1,
+            "cidPart2": cidPart2,
+        ]])
+    }
+
+    func initiateRecovery(newKeyX: String, newKeyY: String, guardianKeyA: String, guardianKeyB: String) async throws -> [String: Any] {
+        try await sendMessage("PXE_INITIATE_RECOVERY", data: ["data": [
+            "newKeyX": newKeyX,
+            "newKeyY": newKeyY,
+            "guardianKeyA": guardianKeyA,
+            "guardianKeyB": guardianKeyB,
+        ]])
+    }
+
+    func executeRecovery(newKeyX: String, newKeyY: String) async throws -> [String: Any] {
+        try await sendMessage("PXE_EXECUTE_RECOVERY", data: ["data": [
+            "newKeyX": newKeyX,
+            "newKeyY": newKeyY,
+        ]])
+    }
+
+    func cancelRecovery() async throws -> [String: Any] {
+        try await sendMessage("PXE_CANCEL_RECOVERY")
+    }
+
+    func isGuardianConfigured() async throws -> Bool {
+        let result = try await sendMessage("PXE_IS_GUARDIAN_CONFIGURED")
+        return result["configured"] as? Bool ?? false
+    }
+
+    func getRecoveryCid() async throws -> (String, String) {
+        let result = try await sendMessage("PXE_GET_RECOVERY_CID")
+        let part1 = result["cidPart1"] as? String ?? "0"
+        let part2 = result["cidPart2"] as? String ?? "0"
+        return (part1, part2)
     }
 
     // MARK: - Snapshot Persistence
@@ -424,6 +470,9 @@ extension PXEBridge: WKScriptMessageHandler {
                 let msg = json["message"] as? String
                 store?.progressMessage = msg
                 pxeLog.notice("[PXEBridge] Progress: \(msg ?? "nil", privacy: .public)")
+                if let msg = msg {
+                    store?.appendPXELog(level: "info", message: msg)
+                }
             default:
                 break
             }

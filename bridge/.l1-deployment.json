@@ -1,0 +1,17 @@
+{
+  "network": "sepolia",
+  "portal": "0x54b844835905B303d9618Ceb502601993040259B",
+  "deployer": "0x2595cd76735D5A0EbAE4041395D6E0Fe88F8Fe60",
+  "deployTx": "0xf6fc14e42d392a542def75bf9c302f18ac7de767474067613fa73474ade4fb23",
+  "initializeTx": "0xaa8cfca16999f4f5559318b506d2c264d13ee08dbacf61a089c6a7c62a8ac32a",
+  "registry": "0xa0bfb1b494fb49041e5c6e8c2c1be09cd171c6ba",
+  "weth": "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9",
+  "supportedTokens": [
+    "0x7b79995e5f793A07Bc00c21412e50Ecae098E7f9"
+  ],
+  "l2Bridge": "0x0f7bef04f49d62c55d01d156d114786cc6d0d9c2e8f7835e29cd9a6dc6c996d5",
+  "status": "deployed_initialized",
+  "deployedAt": "2026-02-28T13:10:00Z",
+  "l2BridgedToken": "0x0e6e89fdd236fad5a3a7b93ec8076ebfad0c086ca5e7f5eb00b91023b2a4d268",
+  "l2DeployedAt": "2026-02-28T16:29:48.519Z"
+}

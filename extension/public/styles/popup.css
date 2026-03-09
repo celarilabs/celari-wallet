@@ -1,46 +1,44 @@
-/* ─── Celari Wallet — Art Deco Dark Extension Theme ─── */
+/* ─── Celari Wallet — Modern Dark Extension Theme ─── */
 
-/* Self-hosted fonts */
-@font-face { font-family: 'Poiret One'; src: url('../fonts/poiret-one-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Tenor Sans'; src: url('../fonts/tenor-sans-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'IBM Plex Mono'; src: url('../fonts/ibm-plex-mono-300.ttf') format('truetype'); font-weight: 300; font-display: swap; }
-@font-face { font-family: 'IBM Plex Mono'; src: url('../fonts/ibm-plex-mono-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'IBM Plex Mono'; src: url('../fonts/ibm-plex-mono-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
-@font-face { font-family: 'Outfit'; src: url('../fonts/outfit-300.ttf') format('truetype'); font-weight: 300; font-display: swap; }
-@font-face { font-family: 'Outfit'; src: url('../fonts/outfit-400.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: 'Outfit'; src: url('../fonts/outfit-500.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+/* Self-hosted fonts — Inter Variable */
+@font-face {
+  font-family: 'Inter';
+  src: url('../fonts/inter-variable.ttf') format('truetype');
+  font-weight: 100 900;
+  font-display: swap;
+}
 
 :root {
-  --bg: #0D0A0A;
-  --bg-card: #151111;
-  --bg-elevated: #1C1616;
-  --bg-section: #100D0C;
-  --bg-input: #1C1616;
+  --bg: #0a0c14;
+  --bg-card: #0f1119;
+  --bg-elevated: #161825;
+  --bg-section: #0c0e18;
+  --bg-input: #161825;
 
-  --burgundy: #8B2D3A;
-  --burgundy-deep: #5C1D28;
-  --burgundy-light: #B84455;
-  --copper: #C87941;
-  --copper-light: #E09A62;
-  --copper-muted: #A06835;
-  --bronze: #9A7B5B;
+  --burgundy: #4dd4ac;
+  --burgundy-deep: #1a3d32;
+  --burgundy-light: #6ee8c4;
+  --copper: #e88c32;
+  --copper-light: #f0a850;
+  --copper-muted: #c07828;
+  --bronze: #5bc4d4;
 
   --green: #4ade80;
   --green-glow: rgba(74, 222, 128, 0.08);
   --red: #ef4444;
 
-  --text-warm: #E8D8CC;
-  --text-body: #BCA898;
-  --text-muted: #8A7A70;
-  --text-dim: #5A4E48;
-  --text-faint: #3A3230;
+  --text-warm: #f0f2f8;
+  --text-body: #b0b8cc;
+  --text-muted: #8891a5;
+  --text-dim: #4a5068;
+  --text-faint: #2a3050;
 
-  --border: #2A2222;
-  --border-warm: #3A2E2E;
+  --border: #1e2235;
+  --border-warm: #2a3050;
 
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
   --shadow: 0 4px 24px rgba(0,0,0,0.3);
 }
 
@@ -52,7 +50,7 @@ body {
   max-height: 600px;
   background: var(--bg);
   color: var(--text-warm);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-weight: 300;
   font-size: 13px;
   line-height: 1.6;
@@ -74,7 +72,7 @@ body {
   justify-content: space-between;
   padding: 14px 16px 10px;
   border-bottom: 1px solid var(--border);
-  background: rgba(13,10,10,0.9);
+  background: rgba(10,12,20,0.9);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 }
@@ -91,8 +89,9 @@ body {
 }
 
 .header-logo span {
-  font-family: 'Poiret One', cursive;
-  font-size: 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
+  font-size: 14px;
   letter-spacing: 6px;
   text-transform: uppercase;
   color: var(--text-warm);
@@ -105,7 +104,7 @@ body {
   padding: 4px 10px;
   background: var(--bg-card);
   border: 1px solid var(--border);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   letter-spacing: 1px;
   color: var(--text-dim);
@@ -127,7 +126,8 @@ body {
 .balance-card {
   margin: 12px 16px;
   padding: 24px 22px;
-  background: linear-gradient(135deg, var(--burgundy-deep), #3D1520, #2A1018);
+  background: linear-gradient(135deg, var(--burgundy-deep), #122a24, #0e1e1a);
+  border-radius: var(--radius-lg);
   position: relative;
   overflow: hidden;
   box-shadow: var(--shadow);
@@ -154,7 +154,7 @@ body {
 }
 
 .balance-label {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   color: rgba(232,216,204,0.35);
   text-transform: uppercase;
@@ -163,7 +163,8 @@ body {
 }
 
 .balance-amount {
-  font-family: 'Poiret One', cursive;
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
   font-size: 34px;
   letter-spacing: 3px;
   color: var(--text-warm);
@@ -178,7 +179,7 @@ body {
 }
 
 .balance-address code {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   letter-spacing: 1px;
   color: rgba(232,216,204,0.3);
@@ -205,7 +206,7 @@ body {
   padding: 3px 10px;
   background: var(--green-glow);
   border: 1px solid rgba(74, 222, 128, 0.15);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   letter-spacing: 2px;
   text-transform: uppercase;
@@ -233,7 +234,7 @@ body {
   color: var(--text-warm);
   cursor: pointer;
   transition: all 0.3s ease;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   font-weight: 500;
   letter-spacing: 3px;
@@ -270,7 +271,7 @@ body {
   flex: 1;
   padding: 8px 0;
   text-align: center;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   font-weight: 500;
   letter-spacing: 2px;
@@ -323,14 +324,14 @@ body {
 .token-info { flex: 1; min-width: 0; }
 
 .token-name {
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-weight: 400;
   font-size: 12px;
   color: var(--text-warm);
 }
 
 .token-symbol {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   color: var(--text-dim);
   letter-spacing: 1px;
@@ -339,7 +340,7 @@ body {
 .token-balance { text-align: right; }
 
 .token-balance .amount {
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-weight: 400;
   font-size: 12px;
   color: var(--text-warm);
@@ -377,9 +378,9 @@ body {
 
 .activity-info { flex: 1; }
 .activity-type { font-weight: 400; font-size: 12px; color: var(--text-warm); }
-.activity-detail { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: var(--text-faint); letter-spacing: 1px; }
+.activity-detail { font-family: 'Inter', system-ui, sans-serif; font-size: 8px; color: var(--text-faint); letter-spacing: 1px; }
 
-.activity-amount { text-align: right; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.5px; }
+.activity-amount { text-align: right; font-family: 'Inter', system-ui, sans-serif; font-size: 11px; letter-spacing: 0.5px; }
 .activity-amount.negative { color: var(--burgundy-light); }
 .activity-amount.positive { color: var(--copper-light); }
 
@@ -394,7 +395,7 @@ body {
 
 .form-label {
   display: block;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   font-weight: 500;
   color: var(--text-dim);
@@ -409,7 +410,7 @@ body {
   background: var(--bg-input);
   border: 1px solid var(--border);
   color: var(--text-warm);
-  font-family: 'Outfit', sans-serif;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 13px;
   outline: none;
   transition: border-color 0.3s ease;
@@ -417,7 +418,7 @@ body {
 
 .form-input:focus {
   border-color: var(--copper);
-  box-shadow: 0 0 0 3px rgba(200,121,65,0.08);
+  box-shadow: 0 0 0 3px rgba(232,140,50,0.08);
 }
 
 .form-input::placeholder {
@@ -425,7 +426,8 @@ body {
 }
 
 .form-input.amount {
-  font-family: 'Poiret One', cursive;
+  font-family: 'Inter', sans-serif;
+  font-weight: 300;
   font-size: 28px;
   text-align: center;
   padding: 16px;
@@ -438,10 +440,10 @@ body {
   top: 50%;
   transform: translateY(-50%);
   padding: 3px 8px;
-  background: rgba(200,121,65,0.1);
-  border: 1px solid rgba(200,121,65,0.3);
+  background: rgba(232,140,50,0.1);
+  border: 1px solid rgba(232,140,50,0.3);
   color: var(--copper);
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   font-weight: 500;
   letter-spacing: 2px;
@@ -450,14 +452,14 @@ body {
 }
 
 .max-btn:hover {
-  background: rgba(200,121,65,0.2);
+  background: rgba(232,140,50,0.2);
 }
 
 /* ─── Buttons ─── */
 .btn {
   width: 100%;
   padding: 14px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 10px;
   font-weight: 500;
   letter-spacing: 4px;
@@ -541,7 +543,7 @@ body {
   top: 45%; left: 50%;
   transform: translate(-50%, -50%);
   width: 280px; height: 280px;
-  background: radial-gradient(circle, rgba(139,45,58,0.08) 0%, transparent 60%);
+  background: radial-gradient(circle, rgba(77,212,172,0.06) 0%, transparent 60%);
   pointer-events: none;
 }
 
@@ -552,9 +554,9 @@ body {
 }
 
 .onboarding h2 {
-  font-family: 'Poiret One', cursive;
-  font-size: 28px;
-  font-weight: 400;
+  font-family: 'Inter', sans-serif;
+  font-size: 24px;
+  font-weight: 300;
   letter-spacing: 8px;
   text-transform: uppercase;
   margin-bottom: 6px;
@@ -562,8 +564,9 @@ body {
 }
 
 .onboarding .subtitle {
-  font-family: 'Tenor Sans', serif;
+  font-family: 'Inter', sans-serif;
   font-style: italic;
+  font-weight: 300;
   font-size: 12px;
   color: var(--text-dim);
   letter-spacing: 2px;
@@ -620,8 +623,8 @@ body {
 
 .feature-item .text strong {
   color: var(--text-warm);
-  font-weight: 400;
-  font-family: 'Tenor Sans', serif;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
 }
 
 /* ─── Back Button ─── */
@@ -646,7 +649,7 @@ body {
   left: 16px;
   right: 16px;
   padding: 12px 16px;
-  font-family: 'IBM Plex Mono', monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 10px;
   font-weight: 400;
   letter-spacing: 1px;
@@ -702,15 +705,7 @@ body {
   background: var(--bg-elevated) !important;
 }
 
-/* ─── Grain texture overlay ─── */
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.02'/%3E%3C/svg%3E");
-  pointer-events: none;
-  z-index: 9999;
-}
+/* Grain texture removed for cleaner modern look */
 
 /* ─── Add Token / Custom Token / Network Buttons ─── */
 #btn-add-token:hover { color: var(--copper) !important; }
@@ -726,7 +721,7 @@ body::after {
   border: 1px solid var(--copper);
   background: var(--bg);
   color: var(--copper);
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   outline: none;
 }
@@ -759,21 +754,21 @@ body::after {
   min-width: 0;
 }
 .nft-name {
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 10px;
   letter-spacing: 1px;
   color: var(--text-warm);
   text-transform: uppercase;
 }
 .nft-id {
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   color: var(--text-dim);
   letter-spacing: 0.5px;
   margin-top: 2px;
 }
 .nft-badge {
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 7px;
   letter-spacing: 1.5px;
   padding: 3px 6px;
@@ -786,8 +781,8 @@ body::after {
 }
 .nft-badge.public {
   color: var(--copper);
-  border: 1px solid rgba(200, 121, 65, 0.2);
-  background: rgba(200, 121, 65, 0.05);
+  border: 1px solid rgba(232, 140, 50, 0.2);
+  background: rgba(232, 140, 50, 0.05);
 }
 
 /* ─── NFT Detail ─── */
@@ -816,7 +811,7 @@ body::after {
   border: 1px solid var(--border);
 }
 .backup-section h3 {
-  font-family: Poiret One, cursive;
+  font-family: 'Inter', sans-serif; font-weight: 500;
   font-size: 14px;
   color: var(--text-warm);
   margin: 0 0 12px;
@@ -836,7 +831,7 @@ body::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   color: var(--copper);
   flex-shrink: 0;
@@ -851,7 +846,7 @@ body::after {
   border: 1px solid var(--border);
   background: var(--bg-input, var(--bg));
   color: var(--text-warm);
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 11px;
   letter-spacing: 1px;
   outline: none;
@@ -873,10 +868,10 @@ body::after {
 .file-drop-zone:hover,
 .file-drop-zone.dragover {
   border-color: var(--copper);
-  background: rgba(200, 121, 65, 0.04);
+  background: rgba(232, 140, 50, 0.04);
 }
 .file-drop-zone p {
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   color: var(--text-dim);
   letter-spacing: 1px;
@@ -897,14 +892,14 @@ body::after {
   min-width: 0;
 }
 .wc-session-name {
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 10px;
   letter-spacing: 1px;
   color: var(--text-warm);
   text-transform: uppercase;
 }
 .wc-session-url {
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 8px;
   color: var(--text-dim);
   margin-top: 2px;
@@ -918,7 +913,7 @@ body::after {
   border: 1px solid var(--border);
   background: var(--bg-input, var(--bg));
   color: var(--text-warm);
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   letter-spacing: 0.5px;
   outline: none;
@@ -930,11 +925,11 @@ body::after {
 .wc-proposal-card {
   margin: 16px;
   padding: 16px;
-  border: 1px solid rgba(200, 121, 65, 0.3);
-  background: rgba(200, 121, 65, 0.04);
+  border: 1px solid rgba(232, 140, 50, 0.3);
+  background: rgba(232, 140, 50, 0.04);
 }
 .wc-proposal-card h3 {
-  font-family: Poiret One, cursive;
+  font-family: 'Inter', sans-serif; font-weight: 500;
   font-size: 14px;
   color: var(--copper);
   margin: 0 0 8px;
@@ -949,7 +944,7 @@ body::after {
   border: 1px solid rgba(239, 68, 68, 0.3);
   background: rgba(239, 68, 68, 0.06);
   color: var(--red);
-  font-family: IBM Plex Mono, monospace;
+  font-family: 'Inter', system-ui, sans-serif;
   font-size: 9px;
   letter-spacing: 2px;
   text-transform: uppercase;

@@ -24,7 +24,8 @@ import { fileURLToPath } from "url";
 import { createAztecNodeClient } from "@aztec/aztec.js/node";
 import { Fr } from "@aztec/aztec.js/fields";
 import { AztecAddress } from "@aztec/aztec.js/addresses";
-import { TestWallet } from "@aztec/test-wallet/server";
+import { EmbeddedWallet } from "@aztec/wallets/embedded";
+import { AccountManager } from "@aztec/aztec.js/wallet";
 
 import { setupSponsoredFPC, generateP256KeyPair } from "./lib/aztec-helpers.js";
 
@@ -93,7 +94,7 @@ async function main() {
   console.log(`Connecting to ${nodeUrl}...`);
 
   const node = createAztecNodeClient(nodeUrl);
-  const wallet = await TestWallet.create(node, { proverEnabled: true });
+  const wallet = await EmbeddedWallet.create(node, { pxeConfig: { proverEnabled: true } });
   const chainInfo = await wallet.getChainInfo();
   console.log(`Connected -- Chain ${chainInfo.chainId}, Protocol v${chainInfo.version}\n`);
 
@@ -113,11 +114,7 @@ async function main() {
   const accountContract = new CelariPasskeyAccountContract(
     pubKeyXBuf, pubKeyYBuf, undefined, privateKeyPkcs8,
   );
-  const accountManager = await wallet.createAccount({
-    secret: secretKey,
-    salt,
-    contract: accountContract,
-  });
+  const accountManager = await AccountManager.create(wallet, secretKey, accountContract, salt);
 
   const address = accountManager.address;
   console.log(`Account address: ${address.toString()}`);
@@ -133,16 +130,14 @@ async function main() {
   console.log("(This may take 30-120 seconds)\n");
 
   const deployMethod = await accountManager.getDeployMethod();
-  const sentTx = await deployMethod.send({
+  const receipt = await deployMethod.send({
     from: AztecAddress.ZERO,
     fee: { paymentMethod: sponsoredPaymentMethod },
+    wait: { timeout: 180_000, returnReceipt: true },
   });
 
-  const txHash = await sentTx.getTxHash();
+  const txHash = receipt.txHash;
   console.log(`Tx hash: ${txHash.toString().slice(0, 22)}...`);
-  console.log("Waiting for confirmation...");
-
-  const receipt = await sentTx.wait({ timeout: 180_000 });
   console.log(`\nDeployed! Status: ${receipt.status}`);
   console.log(`Block: ${receipt.blockNumber}`);
 

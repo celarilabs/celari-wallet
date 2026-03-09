@@ -1,4 +1,4 @@
-use aztec::{macros::notes::note, protocol_types::traits::Packable};
+use aztec::{protocol::traits::Packable, macros::notes::note};
 
 // Stores a P256 public key as raw byte arrays (x, y coordinates)
 // Using [u8; 32] instead of Field because P256 coordinates are 256-bit

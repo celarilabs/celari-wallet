@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Celari Brand System</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-primary: #0a0c14;
+    --bg-card: #0f1119;
+    --bg-elevated: #161825;
+    --teal: #4dd4ac;
+    --teal-dim: rgba(77, 212, 172, 0.15);
+    --orange: #e88c32;
+    --orange-dim: rgba(232, 140, 50, 0.15);
+    --cyan: #5bc4d4;
+    --yellow-green: #c8e84c;
+    --text-primary: #f0f2f8;
+    --text-secondary: #8891a5;
+    --text-dim: #4a5068;
+    --border: #1e2235;
+    --border-hover: #2a3050;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 60px 40px;
+  }
+
+  /* Header */
+  .page-header {
+    text-align: center;
+    margin-bottom: 80px;
+  }
+
+  .page-header h1 {
+    font-weight: 300;
+    font-size: 14px;
+    letter-spacing: 8px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 6px;
+  }
+
+  .page-header p {
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--teal);
+    opacity: 0.6;
+  }
+
+  .divider-line {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--teal), var(--orange));
+    margin: 20px auto;
+    opacity: 0.4;
+  }
+
+  /* Sections */
+  .section { margin-bottom: 72px; }
+
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 5px;
+    color: var(--teal);
+    text-transform: uppercase;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    opacity: 0.7;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* Logo Grid */
+  .logo-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .logo-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 48px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    min-height: 260px;
+    transition: border-color 0.3s;
+  }
+
+  .logo-card:hover { border-color: var(--border-hover); }
+
+  .logo-card.full { grid-column: 1 / -1; min-height: 320px; }
+
+  .logo-card.dark { background: var(--bg-card); }
+  .logo-card.light { background: #f4f6fa; }
+  .logo-card.transparent {
+    background: repeating-conic-gradient(#1a1c28 0% 25%, #14161f 0% 50%) 0 0 / 20px 20px;
+  }
+
+  .card-label {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+  }
+
+  .logo-card.light .card-label { color: #8090a0; }
+
+  /* Brand lockup */
+  .brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+  }
+
+  .brand-lockup img {
+    border-radius: 20%;
+    flex-shrink: 0;
+  }
+
+  .brand-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .brand-name {
+    font-weight: 400;
+    letter-spacing: 10px;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .brand-name.lg { font-size: 52px; }
+  .brand-name.md { font-size: 36px; }
+
+  .brand-tagline {
+    font-size: 13px;
+    letter-spacing: 7px;
+    text-transform: uppercase;
+    opacity: 0.45;
+  }
+
+  /* Icon row */
+  .icon-row {
+    display: flex;
+    align-items: flex-end;
+    gap: 40px;
+    justify-content: center;
+  }
+
+  .icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .icon-item img { border-radius: 20%; }
+  .icon-item span {
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+  }
+
+  /* Color Palette */
+  .palette-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+  }
+
+  .swatch {
+    aspect-ratio: 1;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 12px;
+    transition: transform 0.2s;
+  }
+
+  .swatch:hover { transform: scale(1.04); }
+
+  .swatch-name {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .swatch-hex {
+    font-size: 11px;
+    font-family: 'Inter', monospace;
+    opacity: 0.7;
+  }
+
+  /* Typography */
+  .type-showcase {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 40px;
+  }
+
+  .type-row {
+    display: flex;
+    align-items: baseline;
+    gap: 32px;
+    padding: 18px 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .type-row:last-child { border-bottom: none; }
+
+  .type-label {
+    font-size: 9px;
+    letter-spacing: 4px;
+    color: var(--text-dim);
+    width: 120px;
+    flex-shrink: 0;
+    text-transform: uppercase;
+  }
+
+  /* Usage guidelines */
+  .usage-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .usage-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px;
+  }
+
+  .usage-card h3 {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--teal);
+    margin-bottom: 14px;
+    font-weight: 500;
+  }
+
+  .usage-card ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .usage-card li {
+    font-size: 13px;
+    color: var(--text-secondary);
+    padding-left: 16px;
+    position: relative;
+  }
+
+  .usage-card li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 8px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+  }
+
+  .usage-card.do li::before { background: var(--teal); }
+  .usage-card.dont li::before { background: #e85454; }
+
+  @media (max-width: 768px) {
+    .logo-grid, .palette-grid, .usage-grid { grid-template-columns: 1fr; }
+    .brand-name.lg { font-size: 32px; letter-spacing: 6px; }
+    .icon-row { flex-wrap: wrap; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="page-header">
+    <h1>Celari Brand System</h1>
+    <div class="divider-line"></div>
+    <p>Privacy Wallet &middot; Built on Aztec</p>
+  </div>
+
+  <!-- ===== PRIMARY LOCKUP ===== -->
+  <div class="section">
+    <div class="section-label">01 &mdash; Primary Lockup</div>
+    <div class="logo-grid">
+      <div class="logo-card dark full">
+        <span class="card-label">Dark / Primary</span>
+        <div class="brand-lockup">
+          <img src="../logo/celari_app_icon.png" width="160" height="160" alt="Celari mark">
+          <div class="brand-text">
+            <div class="brand-name lg" style="color:#f0f2f8;">CELARI</div>
+            <div class="brand-tagline" style="color:var(--text-secondary);">Privacy Wallet</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== VARIATIONS ===== -->
+  <div class="section">
+    <div class="section-label">02 &mdash; Variations</div>
+    <div class="logo-grid">
+      <div class="logo-card dark">
+        <span class="card-label">Horizontal / Dark</span>
+        <img src="../logo/celari_logo_dark.png" style="max-width:90%;height:auto;" alt="Dark logo">
+      </div>
+      <div class="logo-card light">
+        <span class="card-label">Horizontal / Light</span>
+        <img src="../logo/celari_logo_light.png" style="max-width:90%;height:auto;" alt="Light logo">
+      </div>
+      <div class="logo-card transparent">
+        <span class="card-label">Horizontal / Transparent</span>
+        <img src="../logo/celari_logo_transparent.png" style="max-width:90%;height:auto;" alt="Transparent logo">
+      </div>
+      <div class="logo-card dark">
+        <span class="card-label">Mark with Border</span>
+        <img src="../logo/celari_mark.png" width="180" height="180" style="border-radius:20%;" alt="Mark">
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== APP ICONS ===== -->
+  <div class="section">
+    <div class="section-label">03 &mdash; App Icon Sizes</div>
+    <div class="logo-card dark full" style="grid-column:unset;">
+      <span class="card-label">Responsive Icons</span>
+      <div class="icon-row">
+        <div class="icon-item">
+          <img src="../logo/celari_app_icon.png" width="128" height="128" alt="128px">
+          <span>1024px source</span>
+        </div>
+        <div class="icon-item">
+          <img src="../logo/celari_ext_icon_128.png" width="128" height="128" alt="128px">
+          <span>128px ext</span>
+        </div>
+        <div class="icon-item">
+          <img src="../logo/celari_favicon_64.png" width="64" height="64" alt="64px">
+          <span>64px favicon</span>
+        </div>
+        <div class="icon-item">
+          <img src="../ios/CelariWallet/CelariWallet/Assets.xcassets/AppIcon.appiconset/AppIcon.png" width="128" height="128" style="border-radius:28px;" alt="iOS icon">
+          <span>iOS App Icon</span>
+        </div>
+        <div class="icon-item">
+          <img src="../extension/public/icons/icon-128.png" width="128" height="128" alt="Ext icon">
+          <span>Extension 128</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SOCIAL ASSETS ===== -->
+  <div class="section">
+    <div class="section-label">04 &mdash; Social Assets</div>
+    <div class="logo-card dark full" style="grid-column:unset; padding: 32px;">
+      <span class="card-label">Twitter Banner (1500x500)</span>
+      <img src="twitter-banner.png" style="max-width:100%;height:auto;border-radius:8px;" alt="Twitter banner">
+    </div>
+  </div>
+
+  <!-- ===== COLOR PALETTE ===== -->
+  <div class="section">
+    <div class="section-label">05 &mdash; Color Palette</div>
+    <div class="palette-grid">
+      <div class="swatch" style="background:#0a0c14;">
+        <span class="swatch-name" style="color:#4a5068;">Deep Navy</span>
+        <span class="swatch-hex" style="color:#4a5068;">#0A0C14</span>
+      </div>
+      <div class="swatch" style="background:#0f1119;">
+        <span class="swatch-name" style="color:#4a5068;">Dark Surface</span>
+        <span class="swatch-hex" style="color:#4a5068;">#0F1119</span>
+      </div>
+      <div class="swatch" style="background:#4dd4ac;">
+        <span class="swatch-name" style="color:#0a0c14;">Teal</span>
+        <span class="swatch-hex" style="color:#0a0c14;">#4DD4AC</span>
+      </div>
+      <div class="swatch" style="background:#e88c32;">
+        <span class="swatch-name" style="color:#0a0c14;">Orange</span>
+        <span class="swatch-hex" style="color:#0a0c14;">#E88C32</span>
+      </div>
+      <div class="swatch" style="background:#c8e84c;">
+        <span class="swatch-name" style="color:#0a0c14;">Lime</span>
+        <span class="swatch-hex" style="color:#0a0c14;">#C8E84C</span>
+      </div>
+      <div class="swatch" style="background:#5bc4d4;">
+        <span class="swatch-name" style="color:#0a0c14;">Cyan</span>
+        <span class="swatch-hex" style="color:#0a0c14;">#5BC4D4</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TYPOGRAPHY ===== -->
+  <div class="section">
+    <div class="section-label">06 &mdash; Typography</div>
+    <div class="type-showcase">
+      <div class="type-row">
+        <span class="type-label">Wordmark</span>
+        <span style="font-size:42px;font-weight:400;letter-spacing:10px;color:var(--text-primary);">CELARI</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Tagline</span>
+        <span style="font-size:16px;font-weight:400;letter-spacing:7px;color:var(--text-secondary);">PRIVACY WALLET</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Heading</span>
+        <span style="font-size:24px;font-weight:600;color:var(--text-primary);">Inter Semibold</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Body</span>
+        <span style="font-size:16px;font-weight:400;color:var(--text-secondary);">Inter Regular &mdash; clean, modern, highly legible</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Caption</span>
+        <span style="font-size:12px;font-weight:300;letter-spacing:2px;color:var(--text-dim);">Inter Light &middot; labels &middot; metadata</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Etymology</span>
+        <span style="font-size:16px;font-weight:300;font-style:italic;color:var(--orange);opacity:0.7;letter-spacing:1px;">cel&#x101;re &mdash; to hide, to conceal</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== USAGE GUIDELINES ===== -->
+  <div class="section">
+    <div class="section-label">07 &mdash; Usage Guidelines</div>
+    <div class="usage-grid">
+      <div class="usage-card do">
+        <h3>Do</h3>
+        <ul>
+          <li>Use the C-mark icon on dark backgrounds (#0A0C14 or #0F1119)</li>
+          <li>Maintain clear space equal to half the icon width around the mark</li>
+          <li>Use horizontal lockup for headers, banners, and social media</li>
+          <li>Use the provided color palette for all branded materials</li>
+          <li>Keep letter-spacing in the wordmark consistent (10px at display size)</li>
+        </ul>
+      </div>
+      <div class="usage-card dont">
+        <h3>Don't</h3>
+        <ul>
+          <li>Alter the 3D gradients or recolor the C-mark icon</li>
+          <li>Place the mark on busy or low-contrast backgrounds</li>
+          <li>Stretch, rotate, or apply effects to the logo</li>
+          <li>Use the old hexagonal/keyhole mark (deprecated)</li>
+          <li>Mix brand colors with off-palette alternatives</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== FILE REFERENCE ===== -->
+  <div class="section">
+    <div class="section-label">08 &mdash; File Reference</div>
+    <div class="type-showcase">
+      <div class="type-row">
+        <span class="type-label">Source Logo</span>
+        <span style="font-size:13px;color:var(--text-secondary);">logo/celari_source_logo.png &mdash; 1024x1024 full logo with text</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Source Icon</span>
+        <span style="font-size:13px;color:var(--text-secondary);">logo/celari_source_icon.png &mdash; 1024x1024 clean app icon</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Generator</span>
+        <span style="font-size:13px;color:var(--text-secondary);">logo/generate_variants.py &mdash; generates all size variants from sources</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">App Icon</span>
+        <span style="font-size:13px;color:var(--text-secondary);">logo/celari_app_icon.png &mdash; 1024x1024, iOS: Assets.xcassets/AppIcon</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Extension</span>
+        <span style="font-size:13px;color:var(--text-secondary);">extension/public/icons/icon-{16,48,128}.png</span>
+      </div>
+      <div class="type-row">
+        <span class="type-label">Favicon</span>
+        <span style="font-size:13px;color:var(--text-secondary);">website/public/favicon.png &mdash; 64x64</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
