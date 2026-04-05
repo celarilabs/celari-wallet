@@ -54,8 +54,17 @@ logo/
 # Service node_modules
 services/**/node_modules/
 
+# Coverage reports
+coverage/
+
+# Backup directories
+backup-before-fixes/
+
 # OS
 .DS_Store
 Thumbs.db
 .vscode/
 .idea/
+
+CLAUDE.md
+*audit*
