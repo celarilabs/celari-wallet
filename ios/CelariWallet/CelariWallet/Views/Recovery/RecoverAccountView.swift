@@ -1,28 +1,36 @@
 import SwiftUI
 
 /// Account recovery screen for a new device.
-/// User enters account address + recovery password to start the process.
+/// User enters account address + recovery password + guardian keys to start the process.
+/// Guardian keys are obtained out-of-band from the guardians who received them during setup.
 struct RecoverAccountView: View {
     @Environment(WalletStore.self) private var store
     @Environment(PXEBridge.self) private var pxeBridge
     @State private var accountAddress = ""
     @State private var recoveryPassword = ""
+    @State private var guardianKeyA = ""
+    @State private var guardianKeyB = ""
     @State private var recovering = false
-    @State private var recoveryId: String?
-    @State private var approvedCount = 0
-    @State private var thresholdMet = false
-    @State private var guardianKeys: [String] = []
     @State private var step: RecoveryStep = .input
-    @State private var polling = false
+    @State private var newPubKeyX = ""
+    @State private var newPubKeyY = ""
+
+    // 24h countdown timer
+    @State private var countdownText = ""
+    @State private var timeLockReady = false
+    private let countdownTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private static let recoveryStartKey = "celari_recovery_start_time"
+    private static let timeLockDuration: TimeInterval = 24 * 60 * 60 // 24 hours
 
     enum RecoveryStep {
-        case input            // Enter address + password
-        case waitingGuardians // Waiting for guardian approvals
-        case timeLock         // 24h waiting period
+        case input            // Enter address + password + guardian keys
+        case timeLock         // 24h waiting period after initiate_recovery
         case complete         // Recovery done
     }
 
-    private let relayBaseUrl = "https://recovery.celariwallet.com"
+    // Relay server — not yet deployed, kept for future use
+    // private let relayBaseUrl = "https://recovery.celariwallet.com"
 
     var body: some View {
         VStack(spacing: 0) {
@@ -33,8 +41,6 @@ struct RecoverAccountView: View {
                     switch step {
                     case .input:
                         inputView
-                    case .waitingGuardians:
-                        waitingView
                     case .timeLock:
                         timeLockView
                     case .complete:
@@ -43,6 +49,9 @@ struct RecoverAccountView: View {
                 }
                 .padding(16)
             }
+        }
+        .onAppear {
+            restoreTimeLockState()
         }
     }
 
@@ -56,7 +65,7 @@ struct RecoverAccountView: View {
                     .tracking(2)
                     .foregroundColor(CelariColors.textDim)
 
-                Text("Enter the account address and your recovery password to start the guardian approval process.")
+                Text("Enter your account address, recovery password, and two guardian keys to start the recovery process.")
                     .font(.system(size: 13, design: .monospaced))
                     .foregroundColor(CelariColors.textMuted)
             }
@@ -66,6 +75,23 @@ struct RecoverAccountView: View {
 
             FormField(label: "Account Address", text: $accountAddress, placeholder: "0x...")
             FormField(label: "Recovery Password", text: $recoveryPassword, placeholder: "Your recovery password", isSecure: true)
+
+            DecoSeparator()
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("GUARDIAN KEYS")
+                    .font(CelariTypography.monoLabel)
+                    .tracking(2)
+                    .foregroundColor(CelariColors.textDim)
+
+                Text("Ask two of your guardians for their keys. These are the 64-character hex strings they received during guardian setup.")
+                    .font(.system(size: 12, design: .monospaced))
+                    .foregroundColor(CelariColors.textMuted)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            FormField(label: "Guardian Key A", text: $guardianKeyA, placeholder: "64-char hex from Guardian A")
+            FormField(label: "Guardian Key B", text: $guardianKeyB, placeholder: "64-char hex from Guardian B")
 
             DecoSeparator()
 
@@ -80,68 +106,8 @@ struct RecoverAccountView: View {
                 }
             }
             .buttonStyle(CelariPrimaryButtonStyle())
-            .disabled(accountAddress.isEmpty || recoveryPassword.isEmpty || recovering)
-            .opacity(accountAddress.isEmpty || recoveryPassword.isEmpty ? 0.5 : 1)
-        }
-    }
-
-    private var waitingView: some View {
-        VStack(spacing: 16) {
-            Image(systemName: "envelope.badge")
-                .font(.system(size: 40))
-                .foregroundColor(CelariColors.copper)
-
-            Text("WAITING FOR GUARDIANS")
-                .font(CelariTypography.monoLabel)
-                .tracking(2)
-                .foregroundColor(CelariColors.textDim)
-
-            Text("Approval emails have been sent to your guardians. Ask them to check their email and approve the recovery.")
-                .font(.system(size: 13, design: .monospaced))
-                .foregroundColor(CelariColors.textMuted)
-                .multilineTextAlignment(.center)
-
-            DecoSeparator()
-
-            // Approval progress
-            HStack(spacing: 12) {
-                ForEach(0..<3, id: \.self) { i in
-                    VStack(spacing: 4) {
-                        Image(systemName: i < approvedCount ? "checkmark.circle.fill" : "circle")
-                            .font(.system(size: 24))
-                            .foregroundColor(i < approvedCount ? CelariColors.green : CelariColors.textFaint)
-                        Text("Guardian \(i + 1)")
-                            .font(CelariTypography.monoTiny)
-                            .foregroundColor(CelariColors.textDim)
-                    }
-                }
-            }
-            .padding(.vertical, 12)
-
-            Text("\(approvedCount)/2 approvals")
-                .font(CelariTypography.monoSmall)
-                .foregroundColor(CelariColors.copper)
-
-            Button {
-                checkStatus()
-            } label: {
-                HStack(spacing: 6) {
-                    if polling {
-                        ProgressView()
-                            .scaleEffect(0.6)
-                            .tint(CelariColors.textDim)
-                    } else {
-                        Image(systemName: "arrow.clockwise")
-                            .font(.system(size: 10))
-                    }
-                    Text("CHECK STATUS")
-                        .font(CelariTypography.monoTiny)
-                        .tracking(1)
-                }
-                .foregroundColor(CelariColors.textDim)
-            }
-            .disabled(polling)
-            .padding(.top, 8)
+            .disabled(!isInputValid || recovering)
+            .opacity(isInputValid ? 1 : 0.5)
         }
     }
 
@@ -149,17 +115,40 @@ struct RecoverAccountView: View {
         VStack(spacing: 16) {
             Image(systemName: "lock.badge.clock")
                 .font(.system(size: 40))
-                .foregroundColor(CelariColors.copper)
+                .foregroundColor(timeLockReady ? CelariColors.green : CelariColors.copper)
 
-            Text("24H TIME-LOCK")
+            Text(timeLockReady ? "TIME-LOCK COMPLETE" : "24H TIME-LOCK")
                 .font(CelariTypography.monoLabel)
                 .tracking(2)
-                .foregroundColor(CelariColors.textDim)
+                .foregroundColor(timeLockReady ? CelariColors.green : CelariColors.textDim)
 
-            Text("Guardian threshold met. The recovery will complete after a 24-hour safety period. The original owner can cancel during this time.")
+            Text(timeLockReady
+                 ? "The 24-hour safety period has passed. You can now finalize the recovery."
+                 : "Recovery initiated on-chain. The original owner can cancel during this 24-hour safety period.")
                 .font(.system(size: 13, design: .monospaced))
                 .foregroundColor(CelariColors.textMuted)
                 .multilineTextAlignment(.center)
+
+            DecoSeparator()
+
+            // Countdown display
+            VStack(spacing: 8) {
+                Text(timeLockReady ? "READY" : "TIME REMAINING")
+                    .font(CelariTypography.monoTiny)
+                    .tracking(1)
+                    .foregroundColor(CelariColors.textFaint)
+
+                Text(timeLockReady ? "00:00:00" : countdownText)
+                    .font(.system(size: 28, weight: .medium, design: .monospaced))
+                    .foregroundColor(timeLockReady ? CelariColors.green : CelariColors.copper)
+            }
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity)
+            .background(CelariColors.bgInput)
+            .overlay(Rectangle().stroke(CelariColors.border, lineWidth: 1))
+            .onReceive(countdownTimer) { _ in
+                updateCountdown()
+            }
 
             DecoSeparator()
 
@@ -174,7 +163,8 @@ struct RecoverAccountView: View {
                 }
             }
             .buttonStyle(CelariPrimaryButtonStyle())
-            .disabled(recovering)
+            .disabled(!timeLockReady || recovering)
+            .opacity(timeLockReady ? 1 : 0.5)
         }
     }
 
@@ -195,12 +185,74 @@ struct RecoverAccountView: View {
                 .multilineTextAlignment(.center)
 
             Button {
+                clearTimeLockState()
                 store.screen = .dashboard
             } label: {
                 Text("Go to Dashboard")
             }
             .buttonStyle(CelariPrimaryButtonStyle())
         }
+    }
+
+    // MARK: - Validation
+
+    private var isInputValid: Bool {
+        !accountAddress.isEmpty
+            && !recoveryPassword.isEmpty
+            && guardianKeyA.count == 64
+            && guardianKeyB.count == 64
+    }
+
+    // MARK: - 24h Countdown Timer
+
+    private func saveTimeLockStart() {
+        UserDefaults.standard.set(Date().timeIntervalSince1970, forKey: Self.recoveryStartKey)
+        // Also persist the new key coordinates for execute step
+        UserDefaults.standard.set(newPubKeyX, forKey: "celari_recovery_newKeyX")
+        UserDefaults.standard.set(newPubKeyY, forKey: "celari_recovery_newKeyY")
+    }
+
+    private func restoreTimeLockState() {
+        let startTime = UserDefaults.standard.double(forKey: Self.recoveryStartKey)
+        guard startTime > 0 else { return }
+
+        // Restore persisted key coordinates
+        newPubKeyX = UserDefaults.standard.string(forKey: "celari_recovery_newKeyX") ?? ""
+        newPubKeyY = UserDefaults.standard.string(forKey: "celari_recovery_newKeyY") ?? ""
+
+        // Only restore to timeLock step if we have valid keys
+        guard !newPubKeyX.isEmpty, !newPubKeyY.isEmpty else { return }
+
+        step = .timeLock
+        updateCountdown()
+    }
+
+    private func updateCountdown() {
+        let startTime = UserDefaults.standard.double(forKey: Self.recoveryStartKey)
+        guard startTime > 0 else {
+            countdownText = "--:--:--"
+            return
+        }
+
+        let elapsed = Date().timeIntervalSince1970 - startTime
+        let remaining = Self.timeLockDuration - elapsed
+
+        if remaining <= 0 {
+            timeLockReady = true
+            countdownText = "00:00:00"
+        } else {
+            timeLockReady = false
+            let hours = Int(remaining) / 3600
+            let minutes = (Int(remaining) % 3600) / 60
+            let seconds = Int(remaining) % 60
+            countdownText = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+        }
+    }
+
+    private func clearTimeLockState() {
+        UserDefaults.standard.removeObject(forKey: Self.recoveryStartKey)
+        UserDefaults.standard.removeObject(forKey: "celari_recovery_newKeyX")
+        UserDefaults.standard.removeObject(forKey: "celari_recovery_newKeyY")
     }
 
     // MARK: - Actions
@@ -211,38 +263,56 @@ struct RecoverAccountView: View {
             do {
                 // 1. Generate new P256 key pair for this device
                 let keyResult = try await pxeBridge.generateKeys()
-                guard let newPubKeyX = keyResult["publicKeyX"] as? String,
-                      let newPubKeyY = keyResult["publicKeyY"] as? String else {
+                guard let pubKeyX = keyResult["publicKeyX"] as? String,
+                      let pubKeyY = keyResult["publicKeyY"] as? String else {
                     throw RecoveryError.keyGenerationFailed
                 }
+                newPubKeyX = pubKeyX
+                newPubKeyY = pubKeyY
 
-                // 2. Send recovery request to relay server
-                let body: [String: Any] = [
-                    "accountAddress": accountAddress,
-                    "newPubKeyX": newPubKeyX,
-                    "newPubKeyY": newPubKeyY,
-                    "guardians": [
-                        ["email": "guardian@example.com"] // Relay fetches emails from CID
-                    ]
-                ]
+                // 2. Use manually entered guardian keys (relay server fallback below)
+                let keyA = guardianKeyA.hasPrefix("0x") ? guardianKeyA : guardianKeyA
+                let keyB = guardianKeyB.hasPrefix("0x") ? guardianKeyB : guardianKeyB
 
-                let url = URL(string: "\(relayBaseUrl)/api/initiate")!
-                var request = URLRequest(url: url)
-                request.httpMethod = "POST"
-                request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-                request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                // 3. Call initiate_recovery on-chain with guardian keys
+                _ = try await pxeBridge.initiateRecovery(
+                    newKeyX: newPubKeyX,
+                    newKeyY: newPubKeyY,
+                    guardianKeyA: keyA,
+                    guardianKeyB: keyB
+                )
 
-                let (data, response) = try await URLSession.shared.data(for: request)
-                guard let httpResponse = response as? HTTPURLResponse,
-                      httpResponse.statusCode == 200 else {
-                    throw RecoveryError.relayRequestFailed
-                }
+                // 4. Persist the recovery start time for 24h countdown
+                saveTimeLockStart()
 
-                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-                recoveryId = json?["recoveryId"] as? String
+                step = .timeLock
+                updateCountdown()
+                store.showToast("Recovery initiated. 24h time-lock started.")
 
-                step = .waitingGuardians
-                store.showToast("Recovery emails sent to guardians")
+                // --- Relay server path (not yet deployed) ---
+                // When recovery.celariwallet.com is live, uncomment below to send
+                // recovery requests via the relay instead of manual key entry:
+                //
+                // let body: [String: Any] = [
+                //     "accountAddress": accountAddress,
+                //     "newPubKeyX": newPubKeyX,
+                //     "newPubKeyY": newPubKeyY,
+                //     "guardians": [
+                //         ["email": "guardian@example.com"]
+                //     ]
+                // ]
+                // let url = URL(string: "\(relayBaseUrl)/api/initiate")!
+                // var request = URLRequest(url: url)
+                // request.httpMethod = "POST"
+                // request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+                // request.httpBody = try JSONSerialization.data(withJSONObject: body)
+                // let (data, response) = try await URLSession.shared.data(for: request)
+                // guard let httpResponse = response as? HTTPURLResponse,
+                //       httpResponse.statusCode == 200 else {
+                //     throw RecoveryError.relayRequestFailed
+                // }
+                // let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+                // recoveryId = json?["recoveryId"] as? String
             } catch {
                 store.showToast("Recovery failed: \(error.localizedDescription)", type: .error)
             }
@@ -250,72 +320,41 @@ struct RecoverAccountView: View {
         }
     }
 
-    private func checkStatus() {
-        guard let rid = recoveryId else { return }
-        polling = true
-        Task {
-            do {
-                let url = URL(string: "\(relayBaseUrl)/api/status?rid=\(rid)")!
-                let (data, _) = try await URLSession.shared.data(from: url)
-                let json = try JSONSerialization.jsonObject(with: data) as? [String: Any]
-
-                approvedCount = json?["approvedCount"] as? Int ?? 0
-                thresholdMet = json?["thresholdMet"] as? Bool ?? false
-
-                if thresholdMet {
-                    // Collect approved guardian keys from relay
-                    if let keys = json?["guardianKeys"] as? [String] {
-                        guardianKeys = keys
-                    }
-                    step = .timeLock
-                    store.showToast("Guardian threshold met!")
-                }
-            } catch {
-                store.showToast("Status check failed", type: .error)
-            }
-            polling = false
-        }
-    }
-
     private func executeRecovery() {
         recovering = true
         Task {
             do {
-                // 1. Call initiate_recovery on-chain with guardian keys
-                guard guardianKeys.count >= 2 else {
-                    throw RecoveryError.insufficientGuardians
+                // Restore keys from persistence if needed
+                let keyX = newPubKeyX.isEmpty
+                    ? (UserDefaults.standard.string(forKey: "celari_recovery_newKeyX") ?? "")
+                    : newPubKeyX
+                let keyY = newPubKeyY.isEmpty
+                    ? (UserDefaults.standard.string(forKey: "celari_recovery_newKeyY") ?? "")
+                    : newPubKeyY
+
+                guard !keyX.isEmpty, !keyY.isEmpty else {
+                    throw RecoveryError.keyGenerationFailed
                 }
 
-                // Get the new key coordinates from the relay status
-                let url = URL(string: "\(relayBaseUrl)/api/status?rid=\(recoveryId ?? "")")!
-                let (statusData, _) = try await URLSession.shared.data(from: url)
-                let statusJson = try JSONSerialization.jsonObject(with: statusData) as? [String: Any]
-
-                let newKeyX = statusJson?["newPubKeyX"] as? String ?? ""
-                let newKeyY = statusJson?["newPubKeyY"] as? String ?? ""
-
-                // 2. Call initiate_recovery via PXE bridge
-                _ = try await pxeBridge.initiateRecovery(
-                    newKeyX: newKeyX,
-                    newKeyY: newKeyY,
-                    guardianKeyA: guardianKeys[0],
-                    guardianKeyB: guardianKeys[1]
-                )
-
-                store.showToast("Recovery initiated on-chain. 24h time-lock started.")
-
-                // 3. After time-lock (in production, user comes back later)
-                // For now, try execute_recovery immediately (will fail if time-lock not expired)
-                // TODO: Add timer/reminder to come back after 24h
-
-                // 4. Execute recovery (finalizes key rotation)
+                // Execute recovery (finalizes key rotation after 24h time-lock)
                 _ = try await pxeBridge.executeRecovery(
-                    newKeyX: newKeyX,
-                    newKeyY: newKeyY
+                    newKeyX: keyX,
+                    newKeyY: keyY
                 )
 
+                clearTimeLockState()
                 step = .complete
                 store.showToast("Account recovered successfully!")
+
+                // --- Relay server path (not yet deployed) ---
+                // When recovery.celariwallet.com is live, the relay can supply
+                // key coordinates and guardian keys from its stored session:
+                //
+                // let url = URL(string: "\(relayBaseUrl)/api/status?rid=\(recoveryId ?? "")")!
+                // let (statusData, _) = try await URLSession.shared.data(from: url)
+                // let statusJson = try JSONSerialization.jsonObject(with: statusData) as? [String: Any]
+                // let newKeyX = statusJson?["newPubKeyX"] as? String ?? ""
+                // let newKeyY = statusJson?["newPubKeyY"] as? String ?? ""
             } catch {
                 store.showToast("Recovery failed: \(error.localizedDescription)", type: .error)
             }

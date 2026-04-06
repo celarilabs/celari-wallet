@@ -1,5 +1,6 @@
 import SwiftUI
 import CryptoKit
+import CoreImage
 
 /// Guardian setup screen.
 /// Owner enters 3 guardian emails + a recovery password.
@@ -15,6 +16,7 @@ struct GuardianSetupView: View {
     @State private var setting = false
     @State private var step: SetupStep = .input
     @State private var generatedKeys: [GuardianKey] = []
+    @State private var cid: String = ""
 
     enum SetupStep {
         case input
@@ -174,6 +176,21 @@ struct GuardianSetupView: View {
 
             DecoSeparator()
 
+            if !cid.isEmpty, let qrImage = generateQRCode(from: cid) {
+                VStack(spacing: 8) {
+                    Text("Share with your guardians")
+                        .font(.headline)
+                    Image(uiImage: qrImage)
+                        .interpolation(.none)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 200, height: 200)
+                    Text("CID: \(cid)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
             Button {
                 store.screen = .dashboard
             } label: {
@@ -226,10 +243,20 @@ struct GuardianSetupView: View {
                     password: recoveryPassword
                 )
 
-                // 4. IPFS upload (TODO: use actual IPFS service)
-                // For now, store encrypted bundle locally and use placeholder CID.
-                let cidPart1 = "0"
-                let cidPart2 = "0"
+                // 4. Upload recovery bundle to IPFS via Pinata
+                guard let pinataKey = store.pinataApiKey, !pinataKey.isEmpty else {
+                    throw GuardianSetupError.missingApiKey
+                }
+                let uploadedCid = try await IPFSManager.shared.upload(json: bundleDict, apiKey: pinataKey)
+                self.cid = uploadedCid
+
+                // Split CID into two Field-sized parts (31 bytes each)
+                let cidBytes = Array(uploadedCid.utf8)
+                let midpoint = min(cidBytes.count, 31)
+                let cidPart1Bytes = cidBytes[0..<midpoint]
+                let cidPart2Bytes = midpoint < cidBytes.count ? Array(cidBytes[midpoint...]) : [UInt8]()
+                let cidPart1 = "0x" + cidPart1Bytes.map { String(format: "%02x", $0) }.joined()
+                let cidPart2 = cidPart2Bytes.isEmpty ? "0x00" : "0x" + cidPart2Bytes.map { String(format: "%02x", $0) }.joined()
 
                 // 5. Call contract setup_guardians via PXE bridge
                 _ = try await pxeBridge.setupGuardians(
@@ -261,6 +288,18 @@ struct GuardianSetupView: View {
         }
     }
 
+    // MARK: - QR Code Helper
+
+    private func generateQRCode(from string: String) -> UIImage? {
+        let data = string.data(using: .ascii)
+        guard let filter = CIFilter(name: "CIQRCodeGenerator") else { return nil }
+        filter.setValue(data, forKey: "inputMessage")
+        filter.setValue("M", forKey: "inputCorrectionLevel")
+        guard let output = filter.outputImage else { return nil }
+        let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+        return UIImage(ciImage: scaled)
+    }
+
     // MARK: - Crypto Helpers
 
     private func generateGuardianKey() -> String {
@@ -279,6 +318,18 @@ struct GuardianSetupView: View {
         let first31 = Array(hashBytes.prefix(31))
         let hex = first31.map { String(format: "%02x", $0) }.joined()
         return "0x" + hex
+    }
+}
+
+// MARK: - Guardian Setup Errors
+
+enum GuardianSetupError: Error, LocalizedError {
+    case missingApiKey
+
+    var errorDescription: String? {
+        switch self {
+        case .missingApiKey: return "Pinata API key not configured. Add it in Settings."
+        }
     }
 }
 

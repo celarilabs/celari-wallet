@@ -39,39 +39,24 @@ struct TokenRowV2: View {
 
             Spacer()
 
-            // Right: public/private balances
+            // Right: total balance + private/public breakdown (AIP-20)
             VStack(alignment: .trailing, spacing: 3) {
-                if let priv = token.privateBalance, priv != "0" && priv != "—" {
-                    HStack(spacing: 4) {
-                        Image(systemName: "shield.fill")
-                            .font(.system(size: 9))
-                            .foregroundColor(V2Colors.aztecGreen)
-                        Text(priv)
-                            .font(V2Fonts.monoSemibold(13))
-                            .foregroundColor(V2Colors.textPrimary)
-                    }
-                }
-                if let pub = token.publicBalance, pub != "—" {
-                    HStack(spacing: 4) {
-                        Image(systemName: "globe")
-                            .font(.system(size: 9))
-                            .foregroundColor(V2Colors.textTertiary)
-                        Text(pub)
-                            .font(V2Fonts.mono(12))
-                            .foregroundColor(V2Colors.textSecondary)
-                    }
-                }
-                if token.privateBalance == nil && token.publicBalance == nil {
-                    Text(token.value)
-                        .font(V2Fonts.monoSemibold(15))
-                        .foregroundColor(V2Colors.textPrimary)
-                    Text("\(token.balance) \(token.symbol)")
+                // Total balance line
+                Text("\(token.balance) \(token.symbol)")
+                    .font(V2Fonts.monoSemibold(14))
+                    .foregroundColor(V2Colors.textPrimary)
+
+                // Private/public breakdown (only if either is non-zero)
+                if token.hasBalanceBreakdown {
+                    Text("Private: \(token.privateBalance)")
                         .font(V2Fonts.mono(11))
-                        .tracking(0.5)
+                        .foregroundColor(V2Colors.textTertiary)
+                    Text("Public: \(token.publicBalance)")
+                        .font(V2Fonts.mono(11))
                         .foregroundColor(V2Colors.textTertiary)
                 }
             }
         }
-        .frame(height: 56)
+        .frame(minHeight: 56)
     }
 }

@@ -16,6 +16,10 @@ settings:
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: "UIInterfaceOrientationPortrait"
     INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
 
+packages:
+  Swoirenberg:
+    path: ../../fork/swoirenberg
+
 targets:
   CelariWallet:
     type: application
@@ -26,10 +30,13 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.celari.wallet
         MARKETING_VERSION: "0.5.0"
-        CURRENT_PROJECT_VERSION: "22"
+        CURRENT_PROJECT_VERSION: "24"
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_KEY_CFBundleDisplayName: "Celari"
         INFOPLIST_KEY_CFBundleIconName: "AppIcon"
+    dependencies:
+      - package: Swoirenberg
+      - target: CelariWidget
     entitlements:
       path: CelariWallet/CelariWallet.entitlements
       properties:
@@ -37,6 +44,13 @@ targets:
           - group.com.celari.wallet
         com.apple.developer.associated-domains:
           - webcredentials:celariwallet.com
+    info:
+      path: CelariWallet/Info.plist
+      properties:
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - celari
+            CFBundleURLName: com.celari.wallet
 
   CelariWalletTests:
     type: bundle.unit-test
@@ -49,3 +63,23 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.celari.wallet.tests
         GENERATE_INFOPLIST_FILE: true
+
+  CelariWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: CelariWidget
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.celari.wallet.widget
+        MARKETING_VERSION: "0.5.0"
+        CURRENT_PROJECT_VERSION: "24"
+        DEVELOPMENT_TEAM: GBQUC68GE9
+        SWIFT_VERSION: "5.9"
+        INFOPLIST_FILE: CelariWidget/Info.plist
+    entitlements:
+      path: CelariWidget/CelariWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.celari.wallet

@@ -97,6 +97,31 @@ struct WalletConnectView: View {
                 .padding(16)
             }
         }
+        .onAppear {
+            loadSessions()
+        }
+    }
+
+    private func loadSessions() {
+        Task {
+            do {
+                let result = try await pxeBridge.wcSessions()
+                if let sessions = result["sessions"] as? [[String: Any]] {
+                    store.wcSessions = sessions.compactMap { dict in
+                        guard let topic = dict["topic"] as? String else { return nil }
+                        return WCSession(
+                            topic: topic,
+                            peerName: dict["peer"] as? String ?? "Unknown dApp",
+                            peerUrl: dict["peerUrl"] as? String ?? "",
+                            chains: dict["chains"] as? [String] ?? [],
+                            expiry: dict["expiry"] as? Int
+                        )
+                    }
+                }
+            } catch {
+                print("[WalletConnectView] Failed to load sessions: \(error)")
+            }
+        }
     }
 
     private func pair() {

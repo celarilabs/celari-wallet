@@ -56,7 +56,7 @@
 
   window.celari = {
     isCelari: true,
-    version: "0.3.0",
+    version: "0.5.0",
     walletSdkId: "celari-wallet", // Aztec wallet-sdk discovery identifier
 
     /** Request wallet connection */
@@ -101,13 +101,20 @@
       return sendRequest("GET_WITHDRAW_PROOF", { l2TxHash });
     },
 
-    /** Listen for account/network changes */
+    /** Listen for account/network changes. Returns unsubscribe function. */
     on(event, callback) {
-      window.addEventListener("message", (e) => {
+      const handler = (e) => {
         if (e.data?.target === "celari-inpage" && e.data?.event === event) {
           callback(e.data.payload);
         }
-      });
+      };
+      window.addEventListener("message", handler);
+      return () => window.removeEventListener("message", handler);
+    },
+
+    /** Remove a listener. Pass the unsubscribe function returned by on(). */
+    off(event, unsub) {
+      if (typeof unsub === "function") unsub();
     },
   };
 

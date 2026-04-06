@@ -42,8 +42,8 @@ async function main() {
   const adminDeployMethod = await adminManager.getDeployMethod();
   const adminReceipt = await adminDeployMethod.send({
     from: AztecAddress.ZERO,
-    fee: { paymentMethod },
-    wait: { timeout: 180_000, returnReceipt: true },
+    fee: { paymentMethod, estimateGas: true, estimatedGasPadding: 0.1 },
+    wait: { timeout: 180_000 },
   });
   console.log(`Admin deploy tx: ${adminReceipt.txHash.toString().slice(0, 22)}...`);
   console.log("Admin deployed!");
@@ -62,7 +62,7 @@ async function main() {
 
   const token = await tokenDeploy.send({
     from: adminAddress,
-    fee: { paymentMethod },
+    fee: { paymentMethod, estimateGas: true, estimatedGasPadding: 0.1 },
     wait: { timeout: 180_000 },
   });
   const tokenAddress = token.address;
@@ -73,7 +73,7 @@ async function main() {
 
   const mintReceipt = await token.methods
     .mint_to_public(accountAddress, 10_000n * 10n ** 18n)
-    .send({ from: adminAddress, fee: { paymentMethod }, wait: { timeout: 180_000 } });
+    .send({ from: adminAddress, fee: { paymentMethod, estimateGas: true, estimatedGasPadding: 0.1 }, wait: { timeout: 180_000 } });
   console.log(`Minted! Block: ${mintReceipt.blockNumber}`);
 
   // Check balance (best-effort, simulate may fail on some SDK versions)

@@ -109,6 +109,13 @@ struct ReceiveViewV2: View {
                         .cardStyle()
                     }
 
+                    // Alpha deposit warning
+                    Text("Alpha network — deposit only what you can afford to lose")
+                        .font(V2Fonts.mono(11))
+                        .foregroundColor(V2Colors.soOrange.opacity(0.8))
+                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity)
+
                     // Action buttons
                     HStack(spacing: 12) {
                         Button {

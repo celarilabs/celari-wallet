@@ -95,6 +95,8 @@ pub contract CelariPasskeyAccount {
     // - Hardware secure enclaves (Apple/Android) use P256
     // - No seed phrases needed - keys never leave the device
     // - Cross-device sync via iCloud/Google
+    // NOTE: When upgrading to Aztec Alpha, &mut PrivateContext may need to change
+    // to value type or immutable reference per Alpha API changes.
     #[contract_library_method]
     fn is_valid_impl(context: &mut PrivateContext, outer_hash: Field) -> bool {
         // Load P256 public key from private storage

@@ -24,7 +24,7 @@ const CELARI_WALLET_INFO = {
   id: CELARI_WALLET_ID,
   name: "Celari Wallet",
   icon: chrome.runtime.getURL("icons/icon-48.png"),
-  version: "0.3.0",
+  version: "0.5.0",
 };
 
 window.addEventListener("message", async (event) => {
@@ -51,7 +51,7 @@ window.addEventListener("message", async (event) => {
       requestId: data.requestId,
       walletInfo: CELARI_WALLET_INFO,
     });
-    window.postMessage(response, "*");
+    window.postMessage(response, window.location.origin);
     return;
   }
 
@@ -71,10 +71,10 @@ window.addEventListener("message", async (event) => {
           error: result.error,
           walletId: CELARI_WALLET_ID,
         });
-        window.postMessage(errorResponse, "*");
+        window.postMessage(errorResponse, window.location.origin);
       } else {
         // Send serialized result directly (already JSON from offscreen)
-        window.postMessage(result.rawResponse, "*");
+        window.postMessage(result.rawResponse, window.location.origin);
       }
     } catch (error) {
       const errorResponse = JSON.stringify({
@@ -82,7 +82,7 @@ window.addEventListener("message", async (event) => {
         error: error.message,
         walletId: CELARI_WALLET_ID,
       });
-      window.postMessage(errorResponse, "*");
+      window.postMessage(errorResponse, window.location.origin);
     }
     return;
   }

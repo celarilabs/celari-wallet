@@ -7,6 +7,9 @@ struct HomeViewV2: View {
     @State private var showProfile = false
     @State private var showShield = false
     @State private var showFaucetAlert = false
+    @State private var showAddAccount = false
+    @State private var showFeeJuice = false
+    @AppStorage("alphaWarningDismissed") private var alphaWarningDismissed = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -54,9 +57,185 @@ struct HomeViewV2: View {
             // Content
             ScrollView {
                 VStack(spacing: 24) {
+                    // Alpha Network warning banner
+                    if !alphaWarningDismissed {
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 14))
+                                .foregroundColor(V2Colors.soOrange)
+
+                            Text("Alpha Network — Experimental software. Do not deposit more than you are willing to lose.")
+                                .font(V2Fonts.mono(11))
+                                .foregroundColor(V2Colors.soOrange)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Spacer(minLength: 0)
+
+                            Button {
+                                withAnimation { alphaWarningDismissed = true }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(V2Colors.soOrange.opacity(0.7))
+                                    .frame(width: 22, height: 22)
+                                    .background(Circle().fill(V2Colors.soOrange.opacity(0.12)))
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(V2Colors.soOrange.opacity(0.08))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(V2Colors.soOrange.opacity(0.25), lineWidth: 1)
+                                )
+                        )
+                        .padding(.horizontal, 24)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    // PXE initialization error banner
+                    if store.pxeInitFailed {
+                        Button {
+                            Task { await store.retryPXEInit() }
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(V2Colors.errorRed)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("PXE Engine Error")
+                                        .font(V2Fonts.bodySemibold(13))
+                                        .foregroundColor(V2Colors.errorRed)
+                                    Text({
+                                        if case .failed(let error) = store.pxeState { return error }
+                                        return "Initialization failed"
+                                    }())
+                                        .font(V2Fonts.body(11))
+                                        .foregroundColor(V2Colors.textSecondary)
+                                        .lineLimit(2)
+                                }
+                                Spacer()
+                                Text("Retry")
+                                    .font(V2Fonts.label(10))
+                                    .foregroundColor(V2Colors.textWhite)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(Capsule().fill(V2Colors.errorRed))
+                            }
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(V2Colors.errorRed.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(V2Colors.errorRed.opacity(0.25), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .padding(.horizontal, 24)
+                    }
+
+                    // Account selector (shown when multiple accounts exist)
+                    if store.accounts.count > 1 {
+                        AccountSelectorV2 {
+                            showAddAccount = true
+                        }
+                    }
+
                     // Balance card
                     BalanceCardV2()
                         .padding(.horizontal, 24)
+
+                    // Fee Juice banner — show for both deployed (no balance) and undeployed (needs faucet before deploy)
+                    if let account = store.activeAccount,
+                       !account.address.hasPrefix("pending_"),
+                       (!account.deployed || store.feeJuiceBalance.isEmpty || store.feeJuiceBalance == "0") {
+                        Button { showFeeJuice = true } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "fuelpump.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(V2Colors.warningOrange)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(account.deployed ? "No Fee Juice" : "Get Fee Juice to Deploy")
+                                        .font(V2Fonts.bodySemibold(13))
+                                        .foregroundColor(V2Colors.warningOrange)
+                                    Text(account.deployed ? "Fee Juice required — bridge from L1 or use faucet" : "Fee Juice is needed to deploy your account on-chain")
+                                        .font(V2Fonts.body(11))
+                                        .foregroundColor(V2Colors.textSecondary)
+                                }
+                                Spacer()
+                                Text("Get Fee Juice")
+                                    .font(V2Fonts.label(10))
+                                    .foregroundColor(V2Colors.textWhite)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        Capsule().fill(V2Colors.soOrange)
+                                    )
+                            }
+                            .padding(12)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(V2Colors.warningOrange.opacity(0.08))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(V2Colors.warningOrange.opacity(0.25), lineWidth: 1)
+                                    )
+                            )
+                        }
+                        .padding(.horizontal, 24)
+                    }
+
+                    // Backup reminder banner
+                    if store.needsBackupReminder && !store.backupReminderDismissed {
+                        HStack(spacing: 10) {
+                            Image(systemName: "doc.badge.clock")
+                                .font(.system(size: 14))
+                                .foregroundColor(V2Colors.soBlue)
+
+                            Text("It's been a while since your last backup")
+                                .font(V2Fonts.mono(11))
+                                .foregroundColor(V2Colors.soBlue)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            Spacer(minLength: 0)
+
+                            Button {
+                                showProfile = true
+                            } label: {
+                                Text("Backup Now")
+                                    .font(V2Fonts.bodySemibold(11))
+                                    .foregroundColor(V2Colors.textWhite)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(
+                                        Capsule().fill(V2Colors.soBlue)
+                                    )
+                            }
+
+                            Button {
+                                withAnimation { store.backupReminderDismissed = true }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 10, weight: .semibold))
+                                    .foregroundColor(V2Colors.soBlue.opacity(0.7))
+                                    .frame(width: 22, height: 22)
+                                    .background(Circle().fill(V2Colors.soBlue.opacity(0.12)))
+                            }
+                        }
+                        .padding(12)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .fill(V2Colors.soBlue.opacity(0.08))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10)
+                                        .stroke(V2Colors.soBlue.opacity(0.25), lineWidth: 1)
+                                )
+                        )
+                        .padding(.horizontal, 24)
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
 
                     // Action buttons
                     HStack(spacing: 20) {
@@ -192,10 +371,11 @@ struct HomeViewV2: View {
                     }
                 }
                 .padding(.top, 8)
-                .padding(.bottom, 24)
+                .padding(.bottom, 120)
             }
             .refreshable {
                 await store.fetchBalances()
+                await store.checkFeeJuiceBalance()
             }
         }
         .background(V2Colors.bgCanvas)
@@ -204,6 +384,12 @@ struct HomeViewV2: View {
         }
         .sheet(isPresented: $showShield) {
             ShieldViewV2()
+        }
+        .sheet(isPresented: $showAddAccount) {
+            AddAccountViewV2()
+        }
+        .sheet(isPresented: $showFeeJuice) {
+            FeeJuiceBridgeViewV2()
         }
         .alert("Request Faucet", isPresented: $showFaucetAlert) {
             Button("Cancel", role: .cancel) {}

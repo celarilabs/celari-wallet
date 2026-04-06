@@ -6,14 +6,27 @@ struct SendViewV2: View {
     @State private var recipient = ""
     @State private var amount = ""
     @State private var selectedTokenIndex = 0
-    @State private var isPrivate = true
+    @State private var transferMode: TransferType = .privateTransfer
     @State private var sending = false
     @State private var showTokenPicker = false
     @State private var showConfirmAlert = false
+    @State private var showLargeTransactionAlert = false
 
     private var selectedToken: Token? {
         guard !store.tokens.isEmpty, selectedTokenIndex < store.tokens.count else { return nil }
         return store.tokens[selectedTokenIndex]
+    }
+
+    private var parsedAmount: Double {
+        Double(amount.replacingOccurrences(of: ",", with: "")) ?? 0
+    }
+
+    private var exceedsDailyLimit: Bool {
+        parsedAmount > 0 && parsedAmount > store.remainingDailyLimit
+    }
+
+    private var isLargeTransaction: Bool {
+        parsedAmount > store.largeTransactionThreshold
     }
 
     var body: some View {
@@ -39,7 +52,7 @@ struct SendViewV2: View {
                                     Text(selectedToken?.name ?? "Select Token")
                                         .font(V2Fonts.bodyMedium(15))
                                         .foregroundColor(V2Colors.textPrimary)
-                                    Text("Balance: \(selectedToken?.balance ?? "0") \(selectedToken?.symbol ?? "")")
+                                    Text("Total: \(selectedToken?.balance ?? "0") \(selectedToken?.symbol ?? "")")
                                         .font(V2Fonts.mono(11))
                                         .foregroundColor(V2Colors.textTertiary)
                                 }
@@ -130,26 +143,58 @@ struct SendViewV2: View {
                             }
                         }
                         .cardStyle()
+
+                        // Daily withdrawal limit info
+                        HStack(spacing: 4) {
+                            Image(systemName: "clock.arrow.circlepath")
+                                .font(.system(size: 10))
+                            Text("Daily limit: \(String(format: "%.2f", store.remainingDailyLimit)) remaining of \(String(format: "%.2f", store.dailyWithdrawalLimit))")
+                        }
+                        .font(V2Fonts.mono(11))
+                        .foregroundColor(store.remainingDailyLimit < store.dailyWithdrawalLimit * 0.2 ? V2Colors.errorRed : V2Colors.textTertiary)
+                        .padding(.top, 2)
+
+                        // Error when exceeding daily limit
+                        if exceedsDailyLimit {
+                            Text("Exceeds daily withdrawal limit")
+                                .font(V2Fonts.mono(11))
+                                .foregroundColor(V2Colors.errorRed)
+                        }
                     }
 
-                    // Privacy toggle
-                    HStack {
-                        HStack(spacing: 10) {
-                            Image(systemName: "shield.checkered")
-                                .foregroundColor(isPrivate ? V2Colors.aztecGreen : V2Colors.textMuted)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("ZK-Shielded")
-                                    .font(V2Fonts.bodyMedium(14))
-                                    .foregroundColor(V2Colors.textPrimary)
-                                Text(isPrivate ? "Private transaction via Aztec" : "Public transaction — visible on-chain")
-                                    .font(V2Fonts.body(11))
-                                    .foregroundColor(V2Colors.textTertiary)
+                    // Transfer mode picker (AIP-20)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("TRANSFER MODE")
+                            .font(V2Fonts.label(11))
+                            .tracking(2)
+                            .foregroundColor(V2Colors.textTertiary)
+
+                        Picker("Transfer Mode", selection: $transferMode) {
+                            ForEach(TransferType.allCases, id: \.self) { mode in
+                                Text(mode.label).tag(mode)
                             }
                         }
-                        Spacer()
-                        Toggle("", isOn: $isPrivate)
-                            .tint(V2Colors.aztecGreen)
-                            .labelsHidden()
+                        .pickerStyle(.segmented)
+
+                        HStack(spacing: 8) {
+                            Image(systemName: transferModeIcon)
+                                .foregroundColor(transferMode.isPrivate ? V2Colors.aztecGreen : V2Colors.soBlue)
+                                .font(.system(size: 14))
+                            Text(transferMode.description)
+                                .font(V2Fonts.body(11))
+                                .foregroundColor(V2Colors.textTertiary)
+                        }
+                        .padding(.top, 2)
+
+                        // Available balance for selected mode
+                        HStack(spacing: 4) {
+                            Text("Available:")
+                                .font(V2Fonts.mono(11))
+                                .foregroundColor(V2Colors.textTertiary)
+                            Text("\(availableBalanceForMode) \(selectedToken?.symbol ?? "")")
+                                .font(V2Fonts.monoSemibold(11))
+                                .foregroundColor(V2Colors.textSecondary)
+                        }
                     }
                     .cardStyle()
 
@@ -159,15 +204,37 @@ struct SendViewV2: View {
                             .font(V2Fonts.bodyMedium(13))
                             .foregroundColor(V2Colors.textSecondary)
                         Spacer()
-                        Text("~0.002 ETH")
+                        Text("Paid in Fee Juice")
                             .font(V2Fonts.monoSemibold(13))
                             .foregroundColor(V2Colors.textPrimary)
                     }
                     .padding(.horizontal, 4)
 
+                    // Fee Juice balance warning
+                    if store.feeJuiceBalance.isEmpty || store.feeJuiceBalance == "0" {
+                        HStack(spacing: 6) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.system(size: 12))
+                                .foregroundColor(V2Colors.warningOrange)
+                            Text("No Fee Juice balance — transaction may fail. Get Fee Juice first.")
+                                .font(V2Fonts.body(11))
+                                .foregroundColor(V2Colors.warningOrange)
+                        }
+                        .padding(10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(
+                            RoundedRectangle(cornerRadius: 8)
+                                .fill(V2Colors.warningOrange.opacity(0.08))
+                        )
+                    }
+
                     // Send button
                     Button {
-                        showConfirmAlert = true
+                        if isLargeTransaction {
+                            showLargeTransactionAlert = true
+                        } else {
+                            showConfirmAlert = true
+                        }
                     } label: {
                         HStack(spacing: 8) {
                             if sending {
@@ -203,10 +270,16 @@ struct SendViewV2: View {
         } message: {
             Text("This may take 10-15 minutes for proof generation.")
         }
+        .alert("Large Transaction", isPresented: $showLargeTransactionAlert) {
+            Button("Cancel", role: .cancel) {}
+            Button("Confirm Send") { performSend() }
+        } message: {
+            Text("You are about to send \(amount) \(selectedToken?.symbol ?? ""). This is a large transaction on an experimental network. Are you sure?")
+        }
     }
 
     private var canSend: Bool {
-        !sending && !amount.isEmpty && !recipient.isEmpty && selectedToken != nil
+        !sending && !amount.isEmpty && !recipient.isEmpty && selectedToken != nil && !exceedsDailyLimit
     }
 
     // MARK: - Token Picker Sheet
@@ -276,9 +349,31 @@ struct SendViewV2: View {
             )
     }
 
+    /// Icon for the current transfer mode
+    private var transferModeIcon: String {
+        switch transferMode {
+        case .privateTransfer: return "lock.shield.fill"
+        case .publicTransfer: return "globe"
+        case .shield: return "arrow.down.to.line"
+        case .unshield: return "arrow.up.to.line"
+        }
+    }
+
+    /// Available balance based on selected transfer mode (AIP-20)
+    private var availableBalanceForMode: String {
+        guard let token = selectedToken else { return "0" }
+        switch transferMode {
+        case .privateTransfer, .unshield:
+            // These spend from private balance
+            return token.privateBalance
+        case .publicTransfer, .shield:
+            // These spend from public balance
+            return token.publicBalance
+        }
+    }
+
     private func applyPercent(_ pct: String) {
-        guard let token = selectedToken,
-              let bal = Double(token.balance.replacingOccurrences(of: ",", with: "")) else { return }
+        guard let bal = Double(availableBalanceForMode.replacingOccurrences(of: ",", with: "")) else { return }
         let multiplier: Double = switch pct {
         case "25%": 0.25
         case "50%": 0.5
@@ -308,8 +403,9 @@ struct SendViewV2: View {
                     to: recipient,
                     amount: amount,
                     tokenAddress: tokenAddr,
-                    transferType: isPrivate ? "private" : "public"
+                    transferType: transferMode.rawValue
                 )
+                store.recordWithdrawal(amount: parsedAmount)
                 store.showToast("Transfer sent!")
                 await store.fetchBalances()
             } catch {

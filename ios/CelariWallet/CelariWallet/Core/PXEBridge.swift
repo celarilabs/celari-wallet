@@ -12,30 +12,17 @@ class PXEBridge: NSObject {
     var error: String?
     weak var store: WalletStore?
 
+    let messageBus = PXEMessageBus()
+    private var _nativeProver: PXENativeProver?
+    private var nativeProver: PXENativeProver {
+        if _nativeProver == nil { _nativeProver = PXENativeProver(messageBus: messageBus) }
+        return _nativeProver!
+    }
     private var webView: WKWebView?
-    private var pendingCallbacks: [String: CheckedContinuation<[String: Any], Error>] = [:]
-    private let callbackLock = NSLock()
     private var storageData: [String: Any] = [:]
 
     override init() {
         super.init()
-    }
-
-    // MARK: - Thread-safe Continuation Access
-
-    private func storeContinuation(_ id: String, _ continuation: CheckedContinuation<[String: Any], Error>) {
-        callbackLock.lock()
-        pendingCallbacks[id] = continuation
-        callbackLock.unlock()
-    }
-
-    /// Remove and return the continuation for the given ID, or nil if already consumed.
-    /// This ensures each CheckedContinuation is resumed at most once.
-    private func removeContinuation(_ id: String) -> CheckedContinuation<[String: Any], Error>? {
-        callbackLock.lock()
-        let cb = pendingCallbacks.removeValue(forKey: id)
-        callbackLock.unlock()
-        return cb
     }
 
     // MARK: - Setup
@@ -56,6 +43,7 @@ class PXEBridge: NSObject {
         controller.add(self, name: "pxeBridge")
         controller.add(self, name: "pxeStorage")
         controller.add(self, name: "pxeEvent")
+        controller.add(self, name: "nativeProver")
 
         // Inject console.log capture so JS logs are visible in Swift
         controller.add(self, name: "jsConsole")
@@ -84,6 +72,90 @@ class PXEBridge: NSObject {
         let consoleScript = WKUserScript(source: consoleOverride, injectionTime: .atDocumentStart, forMainFrameOnly: false)
         controller.addUserScript(consoleScript)
 
+        // Inject native prover bridge (JS → Swift → Swoirenberg)
+        let nativeProverShim = """
+        (function() {
+            var _npCallbacks = {};
+            var _npId = 0;
+
+            window._nativeProverCallback = function(callbackId, resultJson) {
+                var cb = _npCallbacks[callbackId];
+                if (cb) {
+                    delete _npCallbacks[callbackId];
+                    try {
+                        var result = JSON.parse(resultJson);
+                        if (result.error) cb.reject(new Error(result.error));
+                        else cb.resolve(result);
+                    } catch(e) { cb.reject(e); }
+                }
+            };
+
+            function callNative(action, params) {
+                return new Promise(function(resolve, reject) {
+                    var cbId = 'np_' + (++_npId);
+                    _npCallbacks[cbId] = { resolve: resolve, reject: reject };
+                    var msg = JSON.stringify(Object.assign({ action: action, callbackId: cbId }, params || {}));
+                    window.webkit.messageHandlers.nativeProver.postMessage(msg);
+                });
+            }
+
+            window.nativeProver = {
+                available: false, // Decision gate: Week 4 — set to true after Swoirenberg stabilizes
+                callNative: callNative,
+                setupSrs: function(opts) {
+                    return callNative('setup_srs', opts || {});
+                },
+                setupSrsFromBytecode: function(bytecodeBase64) {
+                    return callNative('setup_srs_from_bytecode', { bytecode: bytecodeBase64 });
+                },
+                execute: function(bytecodeBase64, witnessMap) {
+                    return callNative('execute', { bytecode: bytecodeBase64, witnessMap: witnessMap });
+                },
+                prove: function(bytecodeBase64, witnessMap, proofType) {
+                    return callNative('prove', { bytecode: bytecodeBase64, witnessMap: witnessMap, proofType: proofType || 'ultra_honk' });
+                },
+                verify: function(proofHex, vkeyHex, proofType) {
+                    return callNative('verify', { proof: proofHex, vkey: vkeyHex, proofType: proofType || 'ultra_honk' });
+                },
+                getVerificationKey: function(bytecodeBase64, proofType) {
+                    return callNative('get_vkey', { bytecode: bytecodeBase64, proofType: proofType || 'ultra_honk' });
+                },
+                // Chonk/IVC pipeline
+                setupForChonk: function(opts) {
+                    return callNative('setup_for_chonk', opts || {});
+                },
+                setupGrumpkinSrs: function(opts) {
+                    return callNative('setup_grumpkin_srs', opts || {});
+                },
+                chonkStart: function(numCircuits) {
+                    return callNative('chonk_start', { numCircuits: numCircuits });
+                },
+                chonkLoad: function(name, bytecodeB64, vkeyB64) {
+                    return callNative('chonk_load', { name: name, bytecode: bytecodeB64, vkey: vkeyB64 });
+                },
+                chonkAccumulate: function(witnessB64) {
+                    return callNative('chonk_accumulate', { witness: witnessB64 });
+                },
+                chonkProve: function() {
+                    return callNative('chonk_prove', {});
+                },
+                chonkVerify: function(proofB64, vkeyB64) {
+                    return callNative('chonk_verify', { proof: proofB64, vkey: vkeyB64 });
+                },
+                chonkComputeVk: function(bytecodeB64) {
+                    return callNative('chonk_compute_vk', { bytecode: bytecodeB64 });
+                },
+                chonkDestroy: function() {
+                    return callNative('chonk_destroy', {});
+                }
+            };
+
+            console.log('[NativeProver] JS bridge injected — window.nativeProver.available = true');
+        })();
+        """
+        let nativeProverScript = WKUserScript(source: nativeProverShim, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        controller.addUserScript(nativeProverScript)
+
         // Inject Chrome API shim before page loads (defines process, global, chrome.*)
         if let shimURL = Bundle.main.url(forResource: "pxe-bridge-shim", withExtension: "js"),
            let shimCode = try? String(contentsOf: shimURL) {
@@ -107,6 +179,7 @@ class PXEBridge: NSObject {
         wv.isOpaque = false
         wv.alpha = 0.01 // effectively invisible but keeps process alive
         self.webView = wv
+        messageBus.setWebView(wv)
 
         // Attach to key window so the WebContent process stays active
         if let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
@@ -121,59 +194,14 @@ class PXEBridge: NSObject {
     // MARK: - Send Message to JavaScript
 
     func sendMessage(_ type: String, data: [String: Any] = [:]) async throws -> [String: Any] {
-        guard let webView else { throw PXEError.notReady }
+        try await messageBus.sendMessage(type, data: data)
+    }
 
-        let messageId = "msg_\(Date().timeIntervalSince1970)_\(UUID().uuidString.prefix(8))"
+    // MARK: - Evaluate JavaScript
 
-        var message = data
-        message["type"] = type
-        message["_messageId"] = messageId
-
-        let jsonData = try JSONSerialization.data(withJSONObject: message)
-        let jsonString = String(data: jsonData, encoding: .utf8) ?? "{}"
-
-        // ZK proof generation on single-threaded WASM takes ~140s per proof.
-        // Faucet first-time setup needs 3 sequential proofs (~15 min total).
-        let timeoutSeconds: Int
-        switch type {
-        case "PXE_FAUCET":
-            timeoutSeconds = 1200  // 20 min — up to 3 sequential proofs + block inclusion
-        case "PXE_DEPLOY_ACCOUNT", "PXE_TRANSFER", "PXE_NFT_TRANSFER",
-             "PXE_SETUP_GUARDIANS", "PXE_INITIATE_RECOVERY", "PXE_EXECUTE_RECOVERY", "PXE_CANCEL_RECOVERY":
-            timeoutSeconds = 600   // 10 min — 1 proof + block inclusion
-        case "PXE_SNAPSHOT_RESTORE":
-            timeoutSeconds = 600   // 10 min — deserialize + recreate PXE/TestWallet
-        default:
-            timeoutSeconds = 300   // 5 min — non-proving operations
-        }
-
-        return try await withCheckedThrowingContinuation { continuation in
-            storeContinuation(messageId, continuation)
-
-            pxeLog.notice("[PXEBridge] callAsyncJavaScript for \(type, privacy: .public), msgId: \(messageId, privacy: .public), jsonLen: \(jsonString.count), timeout: \(timeoutSeconds)s")
-            Task { @MainActor in
-                do {
-                    _ = try await webView.callAsyncJavaScript(
-                        "window._receiveFromSwift(msg)",
-                        arguments: ["msg": jsonString],
-                        contentWorld: .page
-                    )
-                    pxeLog.notice("[PXEBridge] callAsyncJavaScript OK for \(type, privacy: .public)")
-                } catch {
-                    pxeLog.error("[PXEBridge] callAsyncJavaScript ERROR for \(type, privacy: .public): \(error.localizedDescription, privacy: .public)")
-                    if let cb = self.removeContinuation(messageId) {
-                        cb.resume(throwing: error)
-                    }
-                }
-            }
-
-            Task {
-                try? await Task.sleep(for: .seconds(timeoutSeconds))
-                if let cb = self.removeContinuation(messageId) {
-                    cb.resume(throwing: PXEError.timeout)
-                }
-            }
-        }
+    @MainActor
+    func evaluateJS(_ jsCode: String) async throws -> Any? {
+        try await messageBus.evaluateJS(jsCode)
     }
 
     // MARK: - Typed PXE Methods
@@ -190,10 +218,20 @@ class PXEBridge: NSObject {
         try await sendMessage("PXE_GENERATE_KEYS")
     }
 
-    func deployAccount(pubKeyX: String, pubKeyY: String, pkcs8: String) async throws -> [String: Any] {
-        try await sendMessage("PXE_DEPLOY_ACCOUNT", data: [
+    func computeAddress(pubKeyX: String, pubKeyY: String, pkcs8: String) async throws -> [String: Any] {
+        try await sendMessage("PXE_COMPUTE_ADDRESS", data: [
             "data": ["publicKeyX": pubKeyX, "publicKeyY": pubKeyY, "privateKeyPkcs8": pkcs8]
         ])
+    }
+
+    func deployAccount(pubKeyX: String, pubKeyY: String, pkcs8: String, secretKey: String? = nil, salt: String? = nil, claimData: [String: String]? = nil) async throws -> [String: Any] {
+        var payload: [String: Any] = ["publicKeyX": pubKeyX, "publicKeyY": pubKeyY, "privateKeyPkcs8": pkcs8]
+        if let sk = secretKey { payload["secretKey"] = sk }
+        if let s = salt { payload["salt"] = s }
+        if let cd = claimData {
+            for (k, v) in cd { payload[k] = v }
+        }
+        return try await sendMessage("PXE_DEPLOY_ACCOUNT", data: ["data": payload])
     }
 
     func registerAccount(data: [String: String]) async throws -> [String: Any] {
@@ -260,6 +298,32 @@ class PXEBridge: NSObject {
         try await sendMessage("PXE_WC_SESSIONS")
     }
 
+    // MARK: - AIP-20 Balance Queries
+
+    func getPrivateBalance(tokenAddress: String, ownerAddress: String) async throws -> String {
+        let result = try await sendMessage("PXE_PRIVATE_BALANCE", data: [
+            "data": ["tokenAddress": tokenAddress, "ownerAddress": ownerAddress]
+        ])
+        return result["balance"] as? String ?? "0"
+    }
+
+    func getPublicBalance(tokenAddress: String, ownerAddress: String) async throws -> String {
+        let result = try await sendMessage("PXE_PUBLIC_BALANCE", data: [
+            "data": ["tokenAddress": tokenAddress, "ownerAddress": ownerAddress]
+        ])
+        return result["balance"] as? String ?? "0"
+    }
+
+    // MARK: - Fee Juice
+
+    func getFeeJuiceBalance() async throws -> String {
+        let result = try await sendMessage("PXE_FEE_JUICE_BALANCE")
+        guard let balance = result["balance"] as? String else {
+            throw PXEError.jsError("getFeeJuiceBalance returned no balance")
+        }
+        return balance
+    }
+
     // MARK: - Guardian Recovery
 
     func setupGuardians(guardianHash0: String, guardianHash1: String, guardianHash2: String, threshold: Int, cidPart1: String, cidPart2: String) async throws -> [String: Any] {
@@ -303,6 +367,34 @@ class PXEBridge: NSObject {
         let part1 = result["cidPart1"] as? String ?? "0"
         let part2 = result["cidPart2"] as? String ?? "0"
         return (part1, part2)
+    }
+
+    func checkRecoveryStatus() async throws -> [String: Any] {
+        return try await sendMessage("PXE_IS_RECOVERY_ACTIVE")
+    }
+
+    // MARK: - DEX
+
+    func getSwapQuote(tokenIn: String, tokenOut: String, amountIn: String, slippage: Double = 0.01) async throws -> [String: Any] {
+        return try await sendMessage("PXE_DEX_GET_QUOTE", data: ["data": [
+            "tokenIn": tokenIn,
+            "tokenOut": tokenOut,
+            "amountIn": amountIn,
+            "slippage": slippage
+        ]])
+    }
+
+    func executeSwap(tokenIn: String, tokenOut: String, amountIn: String, amountOutMin: String) async throws -> [String: Any] {
+        return try await sendMessage("PXE_DEX_EXECUTE_SWAP", data: ["data": [
+            "tokenIn": tokenIn,
+            "tokenOut": tokenOut,
+            "amountIn": amountIn,
+            "amountOutMin": amountOutMin
+        ]])
+    }
+
+    func getSupportedPairs() async throws -> [String: Any] {
+        return try await sendMessage("PXE_DEX_SUPPORTED_PAIRS")
     }
 
     // MARK: - Snapshot Persistence
@@ -369,12 +461,11 @@ extension PXEBridge: WKScriptMessageHandler {
                 return
             }
             // Response from JS to a pending Swift call
-            if let messageId = json["_messageId"] as? String,
-               let continuation = removeContinuation(messageId) {
+            if let messageId = json["_messageId"] as? String {
                 if let error = json["error"] as? String {
-                    continuation.resume(throwing: PXEError.jsError(error))
+                    messageBus.resumeContinuation(messageId, with: .failure(PXEError.jsError(error)))
                 } else {
-                    continuation.resume(returning: json)
+                    messageBus.resumeContinuation(messageId, with: .success(json))
                 }
             }
 
@@ -386,6 +477,9 @@ extension PXEBridge: WKScriptMessageHandler {
             // WalletConnect events from JS
             handleEvent(json)
 
+        case "nativeProver":
+            nativeProver.handleRequest(json)
+
         case "jsConsole":
             // JavaScript console output
             let level = json["level"] as? String ?? "log"
@@ -393,7 +487,7 @@ extension PXEBridge: WKScriptMessageHandler {
             pxeLog.notice("[PXE-JS:\(level, privacy: .public)] \(msg, privacy: .public)")
 
             // Forward PXE-related logs to in-app log panel
-            if msg.contains("[PXE") || msg.contains("[AuthWit") || level == "error" {
+            if msg.contains("[PXE") || msg.contains("[AuthWit") || msg.contains("[NativeProver") || level == "error" || level == "warn" {
                 Task { @MainActor in
                     self.store?.appendPXELog(level: level, message: msg)
                 }

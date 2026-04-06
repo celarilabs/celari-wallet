@@ -15,14 +15,22 @@ const NETWORKS = {
   "local": {
     name: "Local Sandbox",
     url: "http://localhost:8080",
+    hasSponsoredFPC: true,
   },
   "devnet": {
     name: "Aztec Devnet",
     url: "https://devnet-6.aztec-labs.com/",
+    hasSponsoredFPC: true,
   },
   "testnet": {
     name: "Aztec Testnet",
     url: "https://rpc.testnet.aztec-labs.com/",
+    hasSponsoredFPC: false,
+  },
+  "mainnet": {
+    name: "Aztec Mainnet",
+    url: "https://rpc.aztec.network/",
+    hasSponsoredFPC: false,
   },
 };
 

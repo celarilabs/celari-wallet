@@ -78,6 +78,27 @@ struct BalanceCardV2: View {
                         .tracking(2)
                         .foregroundColor(V2Colors.soOrange)
                 }
+
+                // Address (tappable to copy — only for real addresses)
+                if let account = store.activeAccount, !account.address.isEmpty, !account.address.hasPrefix("pending_") {
+                    Button {
+                        UIPasteboard.general.string = account.address
+                        store.showToast("Address copied!")
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(String(account.address.prefix(10)) + "..." + String(account.address.suffix(6)))
+                                .font(V2Fonts.mono(11))
+                                .foregroundColor(V2Colors.textWhite.opacity(0.5))
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 9))
+                                .foregroundColor(V2Colors.textWhite.opacity(0.4))
+                        }
+                    }
+                } else if let account = store.activeAccount, account.address.hasPrefix("pending_") {
+                    Text("Address pending — connect to network")
+                        .font(V2Fonts.mono(11))
+                        .foregroundColor(V2Colors.soOrange.opacity(0.7))
+                }
             }
         }
         .padding(24)
@@ -89,21 +110,19 @@ struct BalanceCardV2: View {
 
     private var hasAnyBalance: Bool {
         store.tokens.contains { token in
-            let priv = token.privateBalance ?? "0"
-            let pub = token.publicBalance ?? "0"
-            return priv != "0" || pub != "0"
+            token.hasBalanceBreakdown
         }
     }
 
     private var totalPrivateLabel: String {
-        let tokens = store.tokens.compactMap { $0.privateBalance }
+        let tokens = store.tokens.map { $0.privateBalance }
             .filter { $0 != "0" && $0 != "—" }
         if tokens.isEmpty { return "0" }
         return tokens.joined(separator: " + ")
     }
 
     private var totalPublicLabel: String {
-        let tokens = store.tokens.compactMap { $0.publicBalance }
+        let tokens = store.tokens.map { $0.publicBalance }
             .filter { $0 != "0" && $0 != "—" }
         if tokens.isEmpty { return "0" }
         return tokens.joined(separator: " + ")

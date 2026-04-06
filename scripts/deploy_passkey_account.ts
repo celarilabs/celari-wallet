@@ -27,16 +27,11 @@ import { AztecAddress } from "@aztec/aztec.js/addresses";
 import { EmbeddedWallet } from "@aztec/wallets/embedded";
 import { AccountManager } from "@aztec/aztec.js/wallet";
 
-import { setupSponsoredFPC, generateP256KeyPair } from "./lib/aztec-helpers.js";
+import { getPaymentMethod, generateP256KeyPair } from "./lib/aztec-helpers.js";
 
 import { CelariPasskeyAccountContract } from "../src/utils/passkey_account.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// SponsoredFPC on devnet -- pays gas fees for new accounts
-const SPONSORED_FPC_ADDRESS = AztecAddress.fromString(
-  "0x1586f476995be97f07ebd415340a14be48dc28c6c661cc6bdddb80ae790caa4e"
-);
 
 async function main() {
   console.log("Celari Wallet -- Passkey Account Deploy");
@@ -102,7 +97,7 @@ async function main() {
   console.log("Preparing CelariPasskeyAccount...");
   console.log("  Auth: ECDSA-P256 (secp256r1)");
   console.log("  Signing: WebAuthn / Passkey");
-  console.log("  Fee: SponsoredFPC (free on devnet)\n");
+  console.log("  Fee: SponsoredFPC (devnet) / FeeJuice (testnet/mainnet)\n");
 
   const pubKeyXBuf = Buffer.from(pubKeyX.replace("0x", ""), "hex");
   const pubKeyYBuf = Buffer.from(pubKeyY.replace("0x", ""), "hex");
@@ -119,21 +114,21 @@ async function main() {
   const address = accountManager.address;
   console.log(`Account address: ${address.toString()}`);
 
-  // 4. Set up SponsoredFPC for fee payment
-  console.log("\nRegistering SponsoredFPC contract...");
+  // 4. Set up fee payment (SponsoredFPC on devnet, FeeJuice on testnet/mainnet)
+  console.log("\nSetting up fee payment...");
 
-  const { instance: sponsoredFPCInstance, paymentMethod: sponsoredPaymentMethod } = await setupSponsoredFPC(wallet);
-  console.log(`SponsoredFPC: ${sponsoredFPCInstance.address.toString().slice(0, 22)}...`);
+  const { paymentMethod } = await getPaymentMethod(wallet, address);
+  console.log(`Fee payment method: ${paymentMethod.constructor.name}`);
 
   // 5. Deploy account contract
-  console.log("\nDeploying account to devnet...");
+  console.log("\nDeploying account...");
   console.log("(This may take 30-120 seconds)\n");
 
   const deployMethod = await accountManager.getDeployMethod();
   const receipt = await deployMethod.send({
     from: AztecAddress.ZERO,
-    fee: { paymentMethod: sponsoredPaymentMethod },
-    wait: { timeout: 180_000, returnReceipt: true },
+    fee: { paymentMethod, estimateGas: true, estimatedGasPadding: 0.1 },
+    wait: { timeout: 180_000 },
   });
 
   const txHash = receipt.txHash;

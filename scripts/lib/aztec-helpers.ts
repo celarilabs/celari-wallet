@@ -5,12 +5,12 @@
  */
 
 import { Fr } from "@aztec/aztec.js/fields";
-import { SponsoredFeePaymentMethod } from "@aztec/aztec.js/fee";
+import { SponsoredFeePaymentMethod, FeeJuicePaymentMethod } from "@aztec/aztec.js/fee";
 import { getContractInstanceFromInstantiationParams } from "@aztec/stdlib/contract";
 
 /**
  * Register the SponsoredFPC contract and return a payment method.
- * Used by all deploy scripts for fee-free transactions on devnet/testnet.
+ * Only available on devnet — not deployed on testnet or mainnet.
  */
 export async function setupSponsoredFPC(wallet: { registerContract: Function }) {
   const { SponsoredFPCContract } = await import("@aztec/noir-contracts.js/SponsoredFPC");
@@ -23,6 +23,23 @@ export async function setupSponsoredFPC(wallet: { registerContract: Function }) 
     instance: fpcInstance,
     paymentMethod: new SponsoredFeePaymentMethod(fpcInstance.address),
   };
+}
+
+/**
+ * Get a fee payment method with cascading fallback:
+ * 1. SponsoredFPC (devnet only)
+ * 2. FeeJuicePaymentMethod (testnet/mainnet — requires Fee Juice balance)
+ */
+export async function getPaymentMethod(
+  wallet: { registerContract: Function },
+  payerAddress: { toString: () => string },
+): Promise<{ paymentMethod: SponsoredFeePaymentMethod | FeeJuicePaymentMethod }> {
+  try {
+    return await setupSponsoredFPC(wallet);
+  } catch (e) {
+    console.warn(`SponsoredFPC unavailable: ${(e as Error).message}. Using FeeJuicePaymentMethod.`);
+    return { paymentMethod: new FeeJuicePaymentMethod(payerAddress as any) };
+  }
 }
 
 /**

@@ -15,7 +15,18 @@ struct CelariWalletApp: App {
                 .onAppear {
                     pxeBridge.store = store
                     pxeBridge.setupWebView()
-                    Task { await store.initialize(pxeBridge: pxeBridge) }
+                    Task {
+                        await store.initialize(pxeBridge: pxeBridge)
+                        // Initialize WalletConnect after PXE is ready
+                        do {
+                            _ = try await pxeBridge.wcInit()
+                        } catch {
+                            print("[CelariWalletApp] WalletConnect init failed: \(error)")
+                        }
+                    }
+                    Task {
+                        await NotificationManager.shared.requestPermission()
+                    }
                 }
                 .onChange(of: scenePhase) { _, newPhase in
                     switch newPhase {
@@ -29,6 +40,25 @@ struct CelariWalletApp: App {
                         break
                     }
                 }
+                .onOpenURL { url in
+                    handleDeepLink(url)
+                }
+        }
+    }
+
+    private func handleDeepLink(_ url: URL) {
+        guard url.scheme == "celari" else { return }
+
+        if url.host == "wc",
+           let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
+           let uri = components.queryItems?.first(where: { $0.name == "uri" })?.value {
+            Task {
+                do {
+                    try await pxeBridge.wcPair(uri: uri)
+                } catch {
+                    store.showToast("WalletConnect pairing failed", type: .error)
+                }
+            }
         }
     }
 }

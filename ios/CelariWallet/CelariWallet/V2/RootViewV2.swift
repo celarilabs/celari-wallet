@@ -1,24 +1,79 @@
 import SwiftUI
 
 /// V2 root view using a custom pill-style tab bar.
-/// To use: replace `RootView()` with `RootViewV2()` in CelariWalletApp.swift
-/// and change `.preferredColorScheme(.dark)` to `.preferredColorScheme(.light)`.
+/// Routes based on store.screen: loading → onboarding → dashboard (tab view).
 struct RootViewV2: View {
     @Environment(WalletStore.self) private var store
+    @Environment(PXEBridge.self) private var pxeBridge
     @State private var activeTab: V2Tab = .home
 
     var body: some View {
         ZStack {
             V2Colors.bgCanvas.ignoresSafeArea()
 
+            Group {
+                switch store.screen {
+                case .loading:
+                    LoadingView()
+                case .onboarding:
+                    OnboardingViewV2()
+                case .restore:
+                    RestoreViewV2()
+                case .recoverAccount:
+                    RecoverAccountViewV2()
+                case .guardianSetup:
+                    GuardianSetupViewV2()
+                case .backup:
+                    BackupViewV2()
+                case .addAccount:
+                    AddAccountViewV2()
+                default:
+                    dashboardContent
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: store.screen)
+
+            // Toast overlay (always visible)
+            if let toast = store.toast {
+                VStack {
+                    HStack(spacing: 8) {
+                        Image(systemName: toast.type == .success ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                            .foregroundColor(toast.type == .success ? V2Colors.successGreen : V2Colors.errorRed)
+                        Text(toast.message)
+                            .font(V2Fonts.bodyMedium(14))
+                            .foregroundColor(V2Colors.textPrimary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 14)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(V2Colors.bgCard)
+                            .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
+                    )
+                    .padding(.horizontal, 24)
+                    .padding(.top, 60)
+
+                    Spacer()
+                }
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.3), value: store.toast)
+            }
+        }
+    }
+
+    private var dashboardContent: some View {
+        ZStack {
             VStack(spacing: 0) {
-                // Current tab content
                 Group {
                     switch activeTab {
                     case .home:
                         HomeViewV2(activeTab: $activeTab)
                     case .send:
                         SendViewV2()
+                    case .swap:
+                        SwapViewV2()
+                    case .bridge:
+                        BridgeViewV2()
                     case .receive:
                         ReceiveViewV2()
                     case .history:
@@ -27,7 +82,6 @@ struct RootViewV2: View {
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                // Custom pill tab bar
                 TabBarV2(activeTab: $activeTab)
             }
 
@@ -57,36 +111,10 @@ struct RootViewV2: View {
                                 alignment: .top
                             )
                     )
-                    .padding(.bottom, 95) // above tab bar
+                    .padding(.bottom, 95)
                 }
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .animation(.easeInOut(duration: 0.3), value: store.progressMessage)
-            }
-
-            // Toast overlay
-            if let toast = store.toast {
-                VStack {
-                    HStack(spacing: 8) {
-                        Image(systemName: toast.type == .success ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(toast.type == .success ? V2Colors.successGreen : V2Colors.errorRed)
-                        Text(toast.message)
-                            .font(V2Fonts.bodyMedium(14))
-                            .foregroundColor(V2Colors.textPrimary)
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(V2Colors.bgCard)
-                            .shadow(color: .black.opacity(0.1), radius: 10, y: 4)
-                    )
-                    .padding(.horizontal, 24)
-                    .padding(.top, 60)
-
-                    Spacer()
-                }
-                .transition(.move(edge: .top).combined(with: .opacity))
-                .animation(.easeInOut(duration: 0.3), value: store.toast)
             }
         }
     }

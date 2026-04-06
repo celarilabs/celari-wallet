@@ -8,6 +8,16 @@ enum PXEPersistenceManager {
 
     private static let snapshotFile = "pxe_snapshot.enc"
     private static let keychainKey = "pxe_snapshot_aes_key"
+    private static let blockKey = "pxe_last_synced_block"
+
+    static func saveLastSyncedBlock(_ block: Int) {
+        UserDefaults.standard.set(block, forKey: blockKey)
+    }
+
+    static func getLastSyncedBlock() -> Int? {
+        let val = UserDefaults.standard.integer(forKey: blockKey)
+        return val > 0 ? val : nil
+    }
 
     // MARK: - Encryption Key
 

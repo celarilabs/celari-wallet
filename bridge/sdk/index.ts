@@ -18,7 +18,7 @@ export { L1Client } from "./l1-client.js";
 export type { L1ClientConfig, DepositResult, TokenInfo } from "./l1-client.js";
 
 export { L2Client } from "./l2-client.js";
-export type { L2ClientConfig, ClaimParams, ExitParams, L2Balance } from "./l2-client.js";
+export type { L2ClientConfig, ClaimParams, ExitParams, L2Balance, ClaimResult, ExitResult } from "./l2-client.js";
 
 export {
   computeDepositContentHash,

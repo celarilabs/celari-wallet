@@ -20,8 +20,8 @@
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "@aztec/aztec.js": ">=3.0.0",
-    "@aztec/wallet-sdk": ">=3.0.0"
+    "@aztec/aztec.js": ">=4.0.0 <5.0.0",
+    "@aztec/wallet-sdk": ">=4.0.0 <5.0.0"
   },
   "devDependencies": {
     "typescript": "^5.4.0"

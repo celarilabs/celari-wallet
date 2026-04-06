@@ -327,3 +327,45 @@ describe("Chrome API Mock", () => {
     expect(chrome._alarms.test.periodInMinutes).toBe(1);
   });
 });
+
+describe("Inpage Provider: Event Listener Management", () => {
+  it("on() should return an unsubscribe function", () => {
+    const listeners: Array<{ event: string; handler: Function }> = [];
+    const addListener = (event: string, handler: Function) => {
+      listeners.push({ event, handler });
+    };
+    const removeListener = (_event: string, handler: Function) => {
+      const idx = listeners.findIndex(l => l.handler === handler);
+      if (idx >= 0) listeners.splice(idx, 1);
+    };
+
+    function on(event: string, callback: Function) {
+      const handler = (e: any) => {
+        if (e.data?.target === "celari-inpage" && e.data?.event === event) {
+          callback(e.data.payload);
+        }
+      };
+      addListener("message", handler);
+      return () => removeListener("message", handler);
+    }
+
+    const unsub = on("accountChanged", () => {});
+    expect(typeof unsub).toBe("function");
+    expect(listeners).toHaveLength(1);
+
+    unsub();
+    expect(listeners).toHaveLength(0);
+  });
+
+  it("off() should call the unsubscribe function", () => {
+    let unsubCalled = false;
+    const mockUnsub = () => { unsubCalled = true; };
+
+    function off(_event: string, handler: Function) {
+      if (typeof handler === "function") handler();
+    }
+
+    off("accountChanged", mockUnsub);
+    expect(unsubCalled).toBe(true);
+  });
+});

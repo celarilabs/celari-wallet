@@ -11,7 +11,7 @@
  */
 
 import { L1Client, type L1ClientConfig, type TokenInfo } from "./l1-client.js";
-import { L2Client, type L2ClientConfig } from "./l2-client.js";
+import { L2Client, type L2ClientConfig, type ClaimResult, type ExitResult } from "./l2-client.js";
 import {
   generateSecretHash,
   bigintToHex,
@@ -283,6 +283,10 @@ export class CelariBridge {
     leafIndex: number;
     isPrivate: boolean;
     recipient?: string;
+    wallet: any;
+    bridgeArtifact: any;
+    paymentMethod: any;
+    secretForRedeeming?: bigint;
   }): Promise<{ success: boolean; l2TxHash?: string }> {
     const tx = this.transactions.get(params.txId);
 
@@ -291,27 +295,56 @@ export class CelariBridge {
     }
 
     try {
-      // L2 bridge kontratında claim çağrısı
-      // Production'da: CelariTokenBridge.claim_public() veya claim_private()
       const nodeInfo = await this.l2Client.getNodeInfo();
-
       if (!nodeInfo.connected) {
-        throw new Error("Aztec node'a bağlanılamadı");
+        throw new Error("Cannot connect to Aztec node");
       }
 
-      // Claim işlemi L2'de gerçekleştirilir
-      // Secret, content hash doğrulaması için kullanılır
-      // Başarılı olursa token mint edilir
+      let result: ClaimResult;
 
-      if (tx) {
+      if (params.isPrivate) {
+        if (!params.secretForRedeeming) {
+          throw new Error("secretForRedeeming required for private claim");
+        }
+        result = await this.l2Client.claimPrivate(
+          params.wallet,
+          params.bridgeArtifact,
+          {
+            l1Token: params.l1Token,
+            amount: params.amount,
+            secret: params.secret,
+            leafIndex: params.leafIndex,
+          },
+          params.secretForRedeeming,
+          params.paymentMethod
+        );
+      } else {
+        if (!params.recipient) {
+          throw new Error("recipient required for public claim");
+        }
+        result = await this.l2Client.claimPublic(
+          params.wallet,
+          params.bridgeArtifact,
+          {
+            l1Token: params.l1Token,
+            to: params.recipient,
+            amount: params.amount,
+            secret: params.secret,
+            leafIndex: params.leafIndex,
+          },
+          params.paymentMethod
+        );
+      }
+
+      if (result.success && tx) {
         tx.status = "completed";
-        tx.l2TxHash = `0x${Date.now().toString(16)}`;
+        tx.l2TxHash = result.txHash;
       }
 
-      return { success: true, l2TxHash: tx?.l2TxHash };
+      return { success: result.success, l2TxHash: result.txHash };
     } catch (err) {
       if (tx) {
-        tx.status = "pending_claim"; // Tekrar claim denenebilir
+        tx.status = "pending_claim";
       }
       return { success: false };
     }
@@ -333,8 +366,20 @@ export class CelariBridge {
    * This initiates the exit on L2 and returns the L2 TX hash.
    * The L1 withdrawal can only be completed after the L2 block is proven.
    */
-  async prepareWithdraw(request: WithdrawRequest): Promise<{
+  async prepareWithdraw(
+    request: WithdrawRequest & {
+      wallet: any;
+      bridgeArtifact: any;
+      paymentMethod: any;
+      callerOnL1: `0x${string}`;
+      nonce: bigint;
+      isPrivate?: boolean;
+      l2TokenAddress?: string;
+    }
+  ): Promise<{
     txId: string;
+    l2TxHash?: string;
+    success: boolean;
   }> {
     const txId = `bridge_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
@@ -347,11 +392,54 @@ export class CelariBridge {
       from: "L2 (Aztec)",
       to: request.recipient,
       timestamp: Date.now(),
-      isPrivate: false,
+      isPrivate: request.isPrivate || false,
     };
     this.transactions.set(txId, bridgeTx);
 
-    return { txId };
+    try {
+      let result: ExitResult;
+
+      if (request.isPrivate && request.l2TokenAddress) {
+        result = await this.l2Client.exitToL1Private(
+          request.wallet,
+          request.bridgeArtifact,
+          {
+            l1Token: request.token,
+            recipient: request.recipient,
+            amount: request.amount,
+            callerOnL1: request.callerOnL1,
+            nonce: request.nonce,
+          },
+          request.l2TokenAddress,
+          request.paymentMethod
+        );
+      } else {
+        result = await this.l2Client.exitToL1Public(
+          request.wallet,
+          request.bridgeArtifact,
+          {
+            l1Token: request.token,
+            recipient: request.recipient,
+            amount: request.amount,
+            callerOnL1: request.callerOnL1,
+            nonce: request.nonce,
+          },
+          request.paymentMethod
+        );
+      }
+
+      if (result.success) {
+        bridgeTx.status = "deposited";
+        bridgeTx.l2TxHash = result.txHash;
+      } else {
+        bridgeTx.status = "failed";
+      }
+
+      return { txId, l2TxHash: result.txHash, success: result.success };
+    } catch (err) {
+      bridgeTx.status = "failed";
+      return { txId, success: false };
+    }
   }
 
   // ─── Transaction History ─────────────────────────

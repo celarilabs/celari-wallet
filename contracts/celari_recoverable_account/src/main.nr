@@ -399,6 +399,8 @@ pub contract CelariRecoverableAccount {
 
     // Core WebAuthn/Passkey P256 signature verification.
     // Same logic as v1 but reads from PrivateMutable (via Owned wrapper).
+    // NOTE: When upgrading to Aztec Alpha, &mut PrivateContext may need to change
+    // to value type or immutable reference per Alpha API changes.
     #[contract_library_method]
     fn is_valid_impl(context: &mut PrivateContext, outer_hash: Field) -> bool {
         let storage = Storage::init(context);

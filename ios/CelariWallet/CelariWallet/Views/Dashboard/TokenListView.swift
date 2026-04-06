@@ -52,30 +52,26 @@ struct TokenListView: View {
 
             // Balance
             VStack(alignment: .trailing, spacing: 2) {
-                if let priv = token.privateBalance, priv != "0" && priv != "—" {
+                Text(token.balance)
+                    .font(CelariTypography.monoSmall)
+                    .foregroundColor(CelariColors.textBody)
+                if token.hasBalanceBreakdown {
                     HStack(spacing: 2) {
                         Text("S:")
                             .font(CelariTypography.monoTiny)
                             .foregroundColor(CelariColors.green)
-                        Text(priv)
+                        Text(token.privateBalance)
                             .font(CelariTypography.monoSmall)
                             .foregroundColor(CelariColors.green)
                     }
-                }
-                if let pub = token.publicBalance, pub != "—" {
                     HStack(spacing: 2) {
                         Text("P:")
                             .font(CelariTypography.monoTiny)
                             .foregroundColor(CelariColors.textDim)
-                        Text(pub)
+                        Text(token.publicBalance)
                             .font(CelariTypography.monoSmall)
                             .foregroundColor(CelariColors.textBody)
                     }
-                }
-                if token.privateBalance == nil && token.publicBalance == nil {
-                    Text(token.balance)
-                        .font(CelariTypography.monoSmall)
-                        .foregroundColor(CelariColors.textBody)
                 }
             }
         }
